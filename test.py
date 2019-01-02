@@ -1,7 +1,15 @@
 import subprocess
-import fileinput
-testfile = '/home/jussi/koodit/vfio-conf/testfile'
-for line in fileinput.FileInput(testfile,inplace=1):
-    if ' \n ' in line:
-        line = line.replace('\n',' xdlsd ')
-    print(line, end=" ")
+
+lspci = subprocess.check_output(["lspci", "-nn"])
+ListPci = str(lspci).split("\\n")
+del ListPci[0]
+del ListPci[len(ListPci) - 1]
+
+ListPciRev = []
+for item in ListPci:
+    item = item.replace(')', '(')
+    item = item.split("(")
+    del item[0]
+    del item[1]
+    ListPciRev.extend(item)
+print(ListPciRev)
