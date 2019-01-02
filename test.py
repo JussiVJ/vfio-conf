@@ -50,10 +50,8 @@ PciView = [[ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0]],
             [ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1]]]
 
 
-count = 2
-while len(PciView) <= len(ListPci):
-    PciView.extend([ListPciName[count], ListPciIDs[count], ListPciDomain[count], ListPciRev[count]])
-    count = count + 1
-    print(len(PciView))
-    print(len(ListPci))
+while len(PciView) < len(ListPci):
+    if len(PciView) <= len(ListPci):
+        PciView.append("")
+    PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1]]
 print(PciView)
