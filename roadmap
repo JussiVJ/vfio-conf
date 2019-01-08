@@ -1,0 +1,6 @@
+iommu_enabled
+iommu_disabled
+invalid_mkinitcpio_config
+vfio_enabled
+vfio_disabled
+vfio_devices_updated
