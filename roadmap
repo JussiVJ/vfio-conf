@@ -1,6 +1,10 @@
-iommu_enabled
-iommu_disabled
-invalid_mkinitcpio_config
-vfio_enabled
-vfio_disabled
-vfio_devices_updated
+Initial release:
+- pci device menu
+- driver blacklisting
+- testing
+
+After initial release:
+- multilanguage support
+- support for other distros
+- automatic detection of distro
+- settings dialog

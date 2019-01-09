@@ -187,7 +187,7 @@ class MainWindow(Gtk.Window):
                     line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
                     print(line, end="")
                 else:
-                    self.invalid_grub_conf(ButtonVfioEnable)
+                    self.invalid_mkinitcpio_conf(ButtonVfioEnable)
         else:
             for line in fileinput.FileInput("/etc/default/grub",inplace=1):
                 if "vfio" in line:
@@ -195,7 +195,7 @@ class MainWindow(Gtk.Window):
                     self.vfio_devices_updated()
                 elif "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
                     line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="','GRUB_CMDLINE_LINUX_DEFAULT="'+"vfio_pci="+pci_ids+" ")
-                    self.vfio_enabled(ButtonVfioEnable)
+                    self.vfio_enabled_devices_updated(ButtonVfioEnable)
                 else:
                     self.invalid_grub_conf(ButtonVfioEnable)
                 print(line,end="")
@@ -229,12 +229,77 @@ class MainWindow(Gtk.Window):
                 else:
                     self.invalid_grub_config(ButtonEnableIommu)
 
+    #Completiondialogs
+    def vfio_enabled(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "Vfio enabled!")
+        dialog.format_secondary_text(
+            "Vfio is now enabled")
+        dialog.run()
+
+        dialog.destroy()
+
+    def vfio_devices_updated(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "Vfio devices updated!")
+        dialog.format_secondary_text(
+            "Vfio devices updated")
+        dialog.run()
+
+        dialog.destroy()
+
+    def vfio_enabled_devices_updated(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "Vfio enabled updated!")
+        dialog.format_secondary_text(
+            "Vfio enabled and devices updated")
+        dialog.run()
+
+        dialog.destroy()
+
+    def vfio_disabled(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "Vfio disabled!")
+        dialog.format_secondary_text(
+            "Vfio is now disabled")
+        dialog.run()
+
+        dialog.destroy()
+
+    def iommu_enabled(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "IOMMU now enabled!")
+        dialog.format_secondary_text(
+            "IOMMU mapping now enabled")
+        dialog.run()
+
+        dialog.destroy()
+
+    def iommu_disabled(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "IOMMU now disabled!")
+        dialog.format_secondary_text(
+            "IOMMU mapping now disabled")
+        dialog.run()
+
+        dialog.destroy()
+
+
     #Errordialogs
     def invalid_grub_conf(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Invalid GRUB config!")
         dialog.format_secondary_text(
             "Please check your GRUB config file")
+        dialog.run()
+
+        dialog.destroy()
+
+    def invalid_mkinitcpio_conf(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "Invalid mkinitcpio config!")
+        dialog.format_secondary_text(
+            "Please check your mkinitcpio config file")
         dialog.run()
 
         dialog.destroy()
