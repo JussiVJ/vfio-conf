@@ -148,16 +148,56 @@ class MainWindow(Gtk.Window):
         print("vfio_integrated = "+str(CheckVfio.get_active()))
 
     def disable_vfio(self, ButtonVfioDisable):
-        if self.CheckVfio.get_active() == 'False':
+        if self.CheckVfio.get_active() == False:
             for line in fileinput.FileInput("testfileinitcpio",inplace=1):
                 if 'vfio' in line:
                     line = line.replace(" vfio_pci vfio vfio_iommu_type1 vfio_virqfd", "")
-                    self.vfio_disabled(ButtonVfioDisable)
                     self.genrtoggle = 1
                 print(line, end="")
-                if self.genrtoggle == 0:
-                    self.vfio_not_enabled(ButtonVfioDisable)
+            if self.genrtoggle == 0:
+                self.vfio_not_enabled(ButtonVfioDisable)
+            else:
+                self.vfio_disabled(ButtonVfioDisable)
         else:
+            for line in fileinput.FileInput("testfilegrub",inplace=1):
+                if "vfio_pci" in line:
+                    linelist = line.split(" ")
+                    linelist[0] = linelist[0].split('"')
+                    line2 = []
+                    for item in linelist:
+                        if "vfio_pci" in item:
+                            del item
+                            self.vfio_disabled(ButtonVfioDisable)
+                            self.genrtoggle = 1
+                        else:
+                            line2.extend(" "+item)
+                    line = ''.join(line2)
+                    line = line.replace(" GRUB", "GRUB")
+                print(line,end="")
+            print(linelist)
+            if self.genrtoggle == 0:
+                self.vfio_not_enabled(ButtonVfioDisable)
+        self.genrtoggle = 0
+
+
+    def enable_vfio(self, ButtonVfioEnable):
+        if self.CheckVfio.get_active() == False:
+            for line in fileinput.FileInput("testfileinitcpio",inplace=1):
+                if "vfio" in line:
+                    print(line, end="")
+                    self.vfio_already_enabled(ButtonVfioEnable)
+                    self.genrtoggle = 1
+                elif "keyboard" in line:
+                    line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
+                    print(line, end="")
+                    self.genrtoggle = 1
+                    self.vfio_enabled(ButtonVfioEnable)
+                else:
+                    print(line, end="")
+            if self.genrtoggle == 0:
+                self.invalid_mkinitcpio_conf(ButtonVfioEnable)
+        else:
+            pci_ids = "8942:4j3i,2344:0vd9"
             for line in fileinput.FileInput("testfilegrub",inplace=1):
                 if "vfio_pci" in line:
                     linelist = line.split(" ")
@@ -171,30 +211,6 @@ class MainWindow(Gtk.Window):
                             line2.extend(" "+item)
                     line = ''.join(line2)
                     line = line.replace(" GRUB", "GRUB")
-                print(line,end="")
-            if self.genrtoggle == 0:
-                self.vfio_not_enabled(ButtonVfioDisable)
-        self.genrtoggle = 0
-
-
-    def enable_vfio(self, ButtonVfioEnable):
-        if self.CheckVfio.get_active() == 'False':
-            for line in fileinput.FileInput("testfileinitcpio",inplace=1):
-                if "vfio" in line:
-                    print(line, end="")
-                    self.vfio_already_enabled(ButtonVfioEnable)
-                    self.errortoggle = 1
-                elif "keyboard" in line:
-                    line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
-                    print(line, end="")
-                else:
-                    self.invalid_mkinitcpio_conf(ButtonVfioEnable)
-        else:
-            pci_ids = "8942:4j3i,2344:0vd9"
-            for line in fileinput.FileInput("testfilegrub",inplace=1):
-                if "vfio" in line:
-                    line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="','GRUB_CMDLINE_LINUX_DEFAULT="'+"vfio_pci="+pci_ids+" ")
-                    self.genrtoggle = 1
                 elif "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
                     line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="','GRUB_CMDLINE_LINUX_DEFAULT="'+"vfio_pci="+pci_ids+" ")
                     self.comptoggle = 1
@@ -215,13 +231,14 @@ class MainWindow(Gtk.Window):
                     line = line.replace('intel_iommu=on amd_iommu=on iommu=on iommu=pt ','')
                     self.iommu_disabled(ButtonDisableIommu)
                     self.genrtoggle = 1
-                    self.errortoggle = 1
-                print(line,end="")
-                if self.genrtoggle == 0:
-                    self.iommu_not_enabled(ButtonDisableIommu)
-            if self.errortoggle == 0:
-                self.invalid_grub_conf(ButtonDisableIommu)
+                self.errortoggle = 1
+            print(line,end="")
+        if self.genrtoggle == 0:
+            self.iommu_not_enabled(ButtonDisableIommu)
+        if self.errortoggle == 0:
+            self.invalid_grub_conf(ButtonDisableIommu)
         self.genrtoggle = 0
+        self.errortoggle = 0
 
     def enable_iommu(self, ButtonEnableIommu):
         for line in fileinput.FileInput("testfilegrub", inplace=1):
@@ -230,13 +247,14 @@ class MainWindow(Gtk.Window):
                 self.iommu_already_enabled(ButtonEnableIommu)
             else:
                 if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
-                    line = line.replace("GRUB_CMDLINE_LINUX_DEFAULT=","GRUB_CMDLINE_LINUX_DEFAULT="+"intel_iommu=on amd_iommu=on iommu=on iommu=pt ")
+                    line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="','GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on amd_iommu=on iommu=on iommu=pt ')
                     print(line,end="")
                     self.iommu_enabled(ButtonEnableIommu)
+                    self.errortoggle = 1
                 else:
-                    self.invalid_grub_config(ButtonEnableIommu)
-
-
+                    print(line,end="")
+        if self.errortoggle == 0:
+            self.invalid_grub_config(ButtonEnableIommu)
 
     #Completiondialogs
     def vfio_enabled(self, widget, data=None):
