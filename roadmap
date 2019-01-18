@@ -1,3 +1,6 @@
+Shortterm:
+- Disable Vfio, Both mkinitcpio: invalid mkinitcpio config detection
+
 Initial release:
 - pci device menu
 - driver blacklisting

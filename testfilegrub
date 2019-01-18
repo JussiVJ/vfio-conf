@@ -2,7 +2,7 @@ GRUB_DEFAULT=saved
 GRUB_TIMEOUT=5
 GRUB_TIMEOUT_STYLE=menu
 GRUB_DISTRIBUTOR="Manjaro"
-GRUB_CMDLINE_LINUX_DEFAULT="vfio_pci=8942:4j3i,2344:0vd9 quiet rd.udev.log-priority=3"
+GRUB_CMDLINE_LINUX_DEFAULT="rd.udev.log-priority=3"
 GRUB_CMDLINE_LINUX=""
 
 # If you want to enable the save default function, uncomment the following
@@ -12,7 +12,8 @@ GRUB_SAVEDEFAULT=true
 # Preload both GPT and MBR modules so that they are not missed
 GRUB_PRELOAD_MODULES="part_gpt part_msdos"
 
-# Uncomment to enable booting from LUKS encrypted devices
+# Uncomment to enable booting from LUKS encryp    print(linefin)
+ted devices
 #GRUB_ENABLE_CRYPTODISK=y
 
 # Uncomment to use basic console

@@ -159,24 +159,38 @@ class MainWindow(Gtk.Window):
             else:
                 self.vfio_disabled(ButtonVfioDisable)
         else:
+            linelist = []
+            linelist2 = []
+            line2 = []
+            counter = 0
             for line in fileinput.FileInput("testfilegrub",inplace=1):
-                if "vfio_pci" in line:
-                    linelist = line.split(" ")
-                    linelist[0] = linelist[0].split('"')
-                    line2 = []
-                    for item in linelist:
-                        if "vfio_pci" in item:
-                            del item
-                            self.vfio_disabled(ButtonVfioDisable)
-                            self.genrtoggle = 1
-                        else:
-                            line2.extend(" "+item)
-                    line = ''.join(line2)
-                    line = line.replace(" GRUB", "GRUB")
+                if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
+                    self.errortoggle = 1
+                    if "vfio_pci" in line:
+                        self.genrtoggle = 1
+                        linelist = line.split(' ')
+                        linelist2 = linelist[0].split('"')
+                        linel = linelist2[0]
+                        linelist.insert(0, linel)
+                        linelist[1] = linelist2[1]
+                        for item in linelist:
+                            if "vfio_pci" not in item:
+                                if counter == 0 or counter == len(linelist)-2:
+                                    line2.append(item)
+                                    self.comptoggle = 1
+                                else:
+                                    line2.append(item + " ")
+                                counter = counter + 1
+                        line2[0] = line2[0] + '"'
+                        linefin = ''.join(line2)
+                        line = linefin
                 print(line,end="")
-            print(linelist)
-            if self.genrtoggle == 0:
+            if self.errortoggle == 0:
+                self.invalid_grub_conf(ButtonVfioDisable)
+            elif self.genrtoggle == 0:
                 self.vfio_not_enabled(ButtonVfioDisable)
+            elif self.comptoggle == 1:
+                self.vfio_disabled(ButtonVfioDisable)
         self.genrtoggle = 0
 
 
@@ -198,31 +212,42 @@ class MainWindow(Gtk.Window):
                 self.invalid_mkinitcpio_conf(ButtonVfioEnable)
         else:
             pci_ids = "8942:4j3i,2344:0vd9"
+            linelist = []
+            linelist2 = []
+            line2 = []
+            counter = 0
             for line in fileinput.FileInput("testfilegrub",inplace=1):
-                if "vfio_pci" in line:
-                    linelist = line.split(" ")
-                    line2 = []
-                    for item in linelist:
-                        if "vfio_pci" in item:
-                            del item
-                            self.vfio_disabled(ButtonVfioDisable)
-                            self.genrtoggle = 1
-                        else:
-                            line2.extend(" "+item)
-                    line = ''.join(line2)
-                    line = line.replace(" GRUB", "GRUB")
-                elif "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
-                    line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="','GRUB_CMDLINE_LINUX_DEFAULT="'+"vfio_pci="+pci_ids+" ")
-                    self.comptoggle = 1
+                if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
+                    self.errortoggle = 1
+                    if "vfio_pci" in line:
+                        self.genrtoggle = 1
+                        linelist = line.split(' ')
+                        linelist2 = linelist[0].split('"')
+                        linel = linelist2[0]
+                        linelist.insert(0, linel)
+                        linelist[1] = linelist2[1]
+                        for item in linelist:
+                            if "vfio_pci" not in item:
+                                if counter == 0 or counter == len(linelist)-2:
+                                    line2.append(item)
+                                counter = counter + 1
+                            else:
+                                line2.append("vfio_pci" + pci_ids + " ")
+                        line2[0] = line2[0] + '"'
+                        linefin = ''.join(line2)
+                        line = linefin
+                    else:
+                        line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="', 'GRUB_CMDLINE_LINUX_DEFAULT="' + "vfio_pci:" + pci_ids + " ")
+                        self.comptoggle = 1
                 print(line,end="")
-            if self.genrtoggle == 1:
-                self.vfio_devices_updated(ButtonVfioEnable)
-            if self.comptoggle == 1:
-                self.vfio_enabled_devices_updated(ButtonVfioEnable)
-            if self.genrtoggle == 0 and self.comptoggle == 0:
+            if self.errortoggle == 0:
                 self.invalid_grub_conf(ButtonVfioEnable)
-            self.genrtoggle = 0
-            self.comptoggle = 0
+            elif self.genrtoggle == 0:
+                self.vfio_enabled(ButtonVfioEnable)
+            elif self.comptoggle == 0:
+                self.vfio_enabled_devices_updated(ButtonVfioEnable)
+        self.genrtoggle = 0
+        self.comptoggle = 0
 
     def disable_iommu(self, ButtonDisableIommu):
         for line in fileinput.FileInput('testfilegrub', inplace=1):
@@ -277,7 +302,7 @@ class MainWindow(Gtk.Window):
 
     def vfio_enabled_devices_updated(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
-            Gtk.ButtonsType.OK, "Vfio enabled updated!")
+            Gtk.ButtonsType.OK, "Vfio enabled devices updated!")
         dialog.format_secondary_text(
             "Vfio enabled and devices updated")
         dialog.run()
