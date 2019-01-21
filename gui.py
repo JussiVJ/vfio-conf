@@ -139,8 +139,30 @@ class MainWindow(Gtk.Window):
 
         FramePci = Gtk.Frame(label = "Avaivable PCI-devices:")
         BoxBasic.add(FramePci)
-        BoxPci = Gtk.Box()
-        FramePci.add(BoxPci)
+
+        PciColumns = ["Name", "Product and Vendor IDs", "Bus ID              ", "Revision", "Vfio"]
+        ListmodelPci = Gtk.ListStore(str, str, str, str)
+        for item in PciView:
+            ListmodelPci.append(list(item))
+        PciTreeView = Gtk.TreeView(model=ListmodelPci)
+
+        for i, column in enumerate(PciColumns):
+            cell = Gtk.CellRendererText()
+            if i == 0 or 2:
+                cell.props.weight_set = True
+                cell.props.weight = Pango.Weight.BOLD
+            col = Gtk.TreeViewColumn(column, cell, text=i)
+            PciTreeView.append_column(col)
+
+        self.treelabel = Gtk.Label()
+        self.treelabel.set_text("")
+
+        PciGrid = Gtk.Grid()
+        PciGrid.attach(PciTreeView, 0, 0, 1, 1)
+        PciGrid.attach(self.treelabel, 0, 1, 1, 1)
+
+        FramePci.add(PciGrid)
+
 
     #Buttons
     def vfio_integrated_checked(self, CheckVfio):
@@ -150,11 +172,15 @@ class MainWindow(Gtk.Window):
     def disable_vfio(self, ButtonVfioDisable):
         if self.CheckVfio.get_active() == False:
             for line in fileinput.FileInput("testfileinitcpio",inplace=1):
-                if 'vfio' in line:
-                    line = line.replace(" vfio_pci vfio vfio_iommu_type1 vfio_virqfd", "")
-                    self.genrtoggle = 1
-                print(line, end="")
-            if self.genrtoggle == 0:
+                if "HOOKS=" in line:
+                    self.errortoggle = 1
+                    if 'vfio' in line:
+                        line = line.replace(" vfio_pci vfio vfio_iommu_type1 vfio_virqfd", "")
+                        self.genrtoggle = 1
+                    print(line, end="")
+            if self.errortoggle == 0:
+                self.invalid_mkinitcpio_conf(ButtonVfioDisable)
+            elif self.genrtoggle == 0:
                 self.vfio_not_enabled(ButtonVfioDisable)
             else:
                 self.vfio_disabled(ButtonVfioDisable)
@@ -197,17 +223,18 @@ class MainWindow(Gtk.Window):
     def enable_vfio(self, ButtonVfioEnable):
         if self.CheckVfio.get_active() == False:
             for line in fileinput.FileInput("testfileinitcpio",inplace=1):
-                if "vfio" in line:
-                    print(line, end="")
-                    self.vfio_already_enabled(ButtonVfioEnable)
-                    self.genrtoggle = 1
-                elif "keyboard" in line:
-                    line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
-                    print(line, end="")
-                    self.genrtoggle = 1
-                    self.vfio_enabled(ButtonVfioEnable)
-                else:
-                    print(line, end="")
+                if "HOOKS=" in line:
+                    if "vfio" in line:
+                        print(line, end="")
+                        self.vfio_already_enabled(ButtonVfioEnable)
+                        self.genrtoggle = 1
+                    elif "keyboard" in line:
+                        line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
+                        print(line, end="")
+                        self.genrtoggle = 1
+                        self.vfio_enabled(ButtonVfioEnable)
+                    else:
+                        print(line, end="")
             if self.genrtoggle == 0:
                 self.invalid_mkinitcpio_conf(ButtonVfioEnable)
         else:
@@ -258,25 +285,26 @@ class MainWindow(Gtk.Window):
                     self.genrtoggle = 1
                 self.errortoggle = 1
             print(line,end="")
-        if self.genrtoggle == 0:
-            self.iommu_not_enabled(ButtonDisableIommu)
+
         if self.errortoggle == 0:
             self.invalid_grub_conf(ButtonDisableIommu)
+        elif self.genrtoggle == 0:
+            self.iommu_not_enabled(ButtonDisableIommu)
         self.genrtoggle = 0
         self.errortoggle = 0
 
     def enable_iommu(self, ButtonEnableIommu):
         for line in fileinput.FileInput("testfilegrub", inplace=1):
-            if "iommu" in line:
-                print(line,end="")
-                self.iommu_already_enabled(ButtonEnableIommu)
-            else:
-                if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
+            if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
+                self.errortoggle = 1
+                if "iommu" in line:
+                    print(line,end="")
+                    self.iommu_already_enabled(ButtonEnableIommu)
+                else:
                     line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="','GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on amd_iommu=on iommu=on iommu=pt ')
                     print(line,end="")
                     self.iommu_enabled(ButtonEnableIommu)
-                    self.errortoggle = 1
-                else:
+            else:
                     print(line,end="")
         if self.errortoggle == 0:
             self.invalid_grub_config(ButtonEnableIommu)
@@ -285,8 +313,7 @@ class MainWindow(Gtk.Window):
     def vfio_enabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Vfio enabled!")
-        dialog.format_secondary_text(
-            "Vfio is now enabled")
+        dialog.format_secondary_text("Vfio is now enabled")
         dialog.run()
 
         dialog.destroy()
@@ -294,8 +321,7 @@ class MainWindow(Gtk.Window):
     def vfio_devices_updated(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Vfio devices updated!")
-        dialog.format_secondary_text(
-            "Vfio devices updated")
+        dialog.format_secondary_text("Vfio devices updated")
         dialog.run()
 
         dialog.destroy()
@@ -312,8 +338,7 @@ class MainWindow(Gtk.Window):
     def vfio_disabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Vfio disabled!")
-        dialog.format_secondary_text(
-            "Vfio is now disabled")
+        dialog.format_secondary_text("Vfio is now disabled")
         dialog.run()
 
         dialog.destroy()
@@ -321,8 +346,7 @@ class MainWindow(Gtk.Window):
     def iommu_enabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "IOMMU now enabled!")
-        dialog.format_secondary_text(
-            "IOMMU mapping now enabled")
+        dialog.format_secondary_text("IOMMU mapping now enabled")
         dialog.run()
 
         dialog.destroy()
@@ -330,8 +354,7 @@ class MainWindow(Gtk.Window):
     def iommu_disabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "IOMMU now disabled!")
-        dialog.format_secondary_text(
-            "IOMMU mapping now disabled")
+        dialog.format_secondary_text("IOMMU mapping now disabled")
         dialog.run()
 
         dialog.destroy()
@@ -341,8 +364,7 @@ class MainWindow(Gtk.Window):
     def invalid_grub_conf(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Invalid GRUB config!")
-        dialog.format_secondary_text(
-            "Please check your GRUB config file")
+        dialog.format_secondary_text("Please check your GRUB config file")
         dialog.run()
 
         dialog.destroy()
@@ -350,8 +372,7 @@ class MainWindow(Gtk.Window):
     def invalid_mkinitcpio_conf(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Invalid mkinitcpio config!")
-        dialog.format_secondary_text(
-            "Please check your mkinitcpio config file")
+        dialog.format_secondary_text("Please check your mkinitcpio config file")
         dialog.run()
 
         dialog.destroy()
@@ -359,8 +380,7 @@ class MainWindow(Gtk.Window):
     def vfio_already_enabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Vfio already enabled!")
-        dialog.format_secondary_text(
-            "Vfio is already be enabled")
+        dialog.format_secondary_text("Vfio is already be enabled")
         dialog.run()
 
         dialog.destroy()
@@ -368,8 +388,7 @@ class MainWindow(Gtk.Window):
     def vfio_not_enabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Vfio already disabled!")
-        dialog.format_secondary_text(
-            "Vfio is already disabled")
+        dialog.format_secondary_text("Vfio is already disabled")
         dialog.run()
 
         dialog.destroy()
@@ -377,8 +396,7 @@ class MainWindow(Gtk.Window):
     def iommu_not_enabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "IOMMU already disabled!")
-        dialog.format_secondary_text(
-            "IOMMU mapping is already disabled")
+        dialog.format_secondary_text("IOMMU mapping is already disabled")
         dialog.run()
 
         dialog.destroy()
@@ -386,8 +404,7 @@ class MainWindow(Gtk.Window):
     def iommu_already_enabled(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "IOMMU already enabled!")
-        dialog.format_secondary_text(
-            "IOMMU mapping is already be enabled")
+        dialog.format_secondary_text("IOMMU mapping is already be enabled")
         dialog.run()
 
         dialog.destroy()
