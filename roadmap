@@ -1,13 +1,12 @@
 Shortterm:
 - pci device menu
 
-
 Initial release:
-- driver blacklisting
 - testing
+- driver blacklisting
 
 After initial release:
 - multilanguage support
 - support for other distros
 - automatic detection of distro
-- settings dialog
+- settings dialog (if needed)

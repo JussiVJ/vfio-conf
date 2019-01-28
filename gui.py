@@ -2,8 +2,7 @@ import gi
 import fileinput
 import subprocess
 gi.require_version('Gtk', '3.0')
-gi.require_version('XApp', '1.0')
-from gi.repository import Gio, Gtk, Pango, Gdk, XApp
+from gi.repository import Gio, Gtk, Pango, Gdk
 
 #Get PCI data
 lspci = subprocess.check_output(["lspci", "-nn"])
@@ -30,7 +29,7 @@ for item in ListPci:
         del item[1]
     ListPciName.extend(item)
 
-#Filter out the IDs of the PCI-devices
+#Filter out the IDs of the PCI-dself.errortoggle == 0evices
 ListPciIDs = []
 for item in ListPci:
     item = item.replace('[', ']')
@@ -51,55 +50,44 @@ for item in ListPci:
     ListPciRev.extend(item)
 
 #Put the filtered data into one list
-PciView = [[ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0]],
-            [ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1]]]
+PciView = [[ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0], False],
+            [ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1], False]]
 
 
 while len(PciView) < len(ListPci):
     if len(PciView) <= len(ListPci):
         PciView.append("")
-    PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1]]
+    PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], False]
 
 class MainWindow(Gtk.Window):
     def __init__(self):
+        self.pci_ids = []
         Gtk.Window.__init__(self, title="Vfio-conf")
         self.comptoggle = 0
         self.genrtoggle = 0
         self.errortoggle = 0
 
-        BoxBasic = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        BoxBasic.set_margin_top(6)
-        BoxBasic.set_margin_left(6)
-        BoxBasic.set_margin_right(6)
-        self.add(BoxBasic)
+        BoxMain = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        BoxMain.set_margin_top(6)
+        BoxMain.set_margin_left(6)
+        BoxMain.set_margin_right(6)
+        self.add(BoxMain)
 
-        LabelMain = Gtk.Label("Basic configuration options:")
-        BoxBasic.add(LabelMain)
-
-        self.CheckVfio = Gtk.CheckButton(" Vfio is compiled in (unfinished)")
+        self.CheckVfio = Gtk.CheckButton(" Vfio is compiled into the kernel")
         self.CheckVfio.connect("toggled", self.vfio_integrated_checked)
-        BoxBasic.add(self.CheckVfio)
+        BoxMain.add(self.CheckVfio)
 
         BoxOptions = Gtk.Box()
-        BoxBasic.add(BoxOptions)
+        BoxMain.add(BoxOptions)
 
         BoxOptions2 = Gtk.Box()
-        BoxBasic.add(BoxOptions2)
+        BoxMain.add(BoxOptions2)
 
         BoxOptions3 = Gtk.Box()
-        BoxBasic.add(BoxOptions3)
+        BoxMain.add(BoxOptions3)
 
         BoxOptions4 = Gtk.Box()
-        BoxBasic.add(BoxOptions4)
-
-        BoxOptions5 = Gtk.Box()
-        BoxBasic.add(BoxOptions5)
-
-        BoxOptions6 = Gtk.Box()
-        BoxBasic.add(BoxOptions6)
-
-        BoxOptions7 = Gtk.Box()
-        BoxBasic.add(BoxOptions7)
+        BoxMain.add(BoxOptions4)
 
         ButtonVfioEnable = Gtk.Button.new_with_label("Enable Vfio")
         ButtonVfioEnable.connect("clicked", self.enable_vfio)
@@ -138,33 +126,102 @@ class MainWindow(Gtk.Window):
         BoxOptions4.add(LabelIommuDisable)
 
         FramePci = Gtk.Frame(label = "Avaivable PCI-devices:")
-        BoxBasic.add(FramePci)
+        BoxMain.add(FramePci)
+        FramePci.set_margin_left(3)
+        FramePci.set_margin_right(3)
 
-        PciColumns = ["Name", "Product and Vendor IDs", "Bus ID              ", "Revision", "Vfio"]
-        ListmodelPci = Gtk.ListStore(str, str, str, str)
+        PciColumns = ["Name", "Product and Vendor IDs", "Bus ID              ", "Revision"]
+        self.ListmodelPci = Gtk.ListStore(str, str, str, str, bool)
         for item in PciView:
-            ListmodelPci.append(list(item))
-        PciTreeView = Gtk.TreeView(model=ListmodelPci)
+            self.ListmodelPci.append(list(item))
+        PciTreeView = Gtk.TreeView(model=self.ListmodelPci)
 
-        for i, column in enumerate(PciColumns):
-            cell = Gtk.CellRendererText()
-            if i == 0 or 2:
-                cell.props.weight_set = True
-                cell.props.weight = Pango.Weight.BOLD
-            col = Gtk.TreeViewColumn(column, cell, text=i)
-            PciTreeView.append_column(col)
+        renderer_text = Gtk.CellRendererText()
+        renderer_toggle = Gtk.CellRendererToggle()
+        renderer_toggle.connect("toggled", self.on_cell_toggled)
 
-        self.treelabel = Gtk.Label()
-        self.treelabel.set_text("")
+        for i, column_title in enumerate(PciColumns):
+            column = Gtk.TreeViewColumn(column_title, renderer_text, text=i)
+            PciTreeView.append_column(column)
 
-        PciGrid = Gtk.Grid()
-        PciGrid.attach(PciTreeView, 0, 0, 1, 1)
-        PciGrid.attach(self.treelabel, 0, 1, 1, 1)
+        column_toggle = Gtk.TreeViewColumn("Toggle", renderer_toggle, active=4)
+        PciTreeView.append_column(column_toggle)
 
-        FramePci.add(PciGrid)
+        PciTreeView.set_margin_left(3)
+        PciTreeView.set_margin_right(3)
+        FramePci.add(PciTreeView)
 
+        BoxApply = Gtk.Box()
+        BoxMain.add(BoxApply)
+
+        ButtonApplyPci = Gtk.Button.new_with_label("Apply configuration")
+        ButtonApplyPci.connect("clicked", self.apply_pci)
+        ButtonApplyPci.set_size_request(120, 0)
+        ButtonApplyPci.set_margin_top(6)
+        ButtonApplyPci.set_margin_bottom(6)
+        ButtonApplyPci.set_margin_left(6)
+        ButtonApplyPci.set_margin_right(6)
+        BoxApply.add(ButtonApplyPci)
+
+        LabelApplyPci = Gtk.Label("Confirm the selection of the devices you want to pass through")
+        LabelApplyPci.set_margin_left(5)
+        BoxApply.add(LabelApplyPci)
 
     #Buttons
+    def apply_pci(self, ButtonApplyPci):
+        if self.CheckVfio.get_active() == False:
+            for line in fileinput.FileInput("testfilemodprobe",inplace=1):
+                line = "options vfio-pci ids="
+            self.vfio_devices_updated(ButtonApplyPci)
+        else:
+            linelist = []
+            linelist2 = []
+            line2 = []
+            counter = 0
+            for line in fileinput.FileInput("testfilegrub",inplace=1):
+                if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
+                    self.errortoggle = 1
+                    if "vfio_pci" in line:
+                        self.genrtoggle = 1
+                        linelist = line.split(' ')
+                        linelist2 = linelist[0].split('"')
+                        linel = linelist2[0]
+                        linelist.insert(0, linel)
+                        linelist[1] = linelist2[1]
+                        for item in linelist:
+                            if "vfio_pci" not in item:
+                                if counter == 0 or counter == len(linelist)-2:
+                                    line2.append(item)
+                                counter = counter + 1
+                            else:
+                                line2.append("vfio_pci" + self.pci_ids + " ")
+                        line2[0] = line2[0] + '"'
+                        linefin = ''.join(line2)
+                        line = linefin
+                    else:
+                        line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="', 'GRUB_CMDLINE_LINUX_DEFAULT="' + "vfio_pci:" + self.pci_ids + " ")
+                        self.comptoggle = 1
+                print(line,end="")
+            if self.errortoggle == 0:
+                self.invalid_grub_conf(ButtonVfioEnable)
+            elif self.genrtoggle == 0:
+                self.vfio_enabled(ButtonVfioEnable)
+            elif self.comptoggle == 0:
+                self.vfio_enabled_devices_updated(ButtonVfioEnable)
+        self.genrtoggle = 0
+        self.comptoggle = 0
+        self.errortoggle = 0
+
+    def on_cell_toggled(self, widget, path):
+        self.ListmodelPci[path][4] = not self.ListmodelPci[path][4]
+        if self.ListmodelPci[path][1] in self.pci_ids:
+            for x in range(len(self.pci_ids)):
+                if self.ListmodelPci[path][1] in self.pci_ids[x]:
+                    del self.pci_ids[x]
+                    break
+        else:
+            self.pci_ids.append(self.ListmodelPci[path][1])
+
     def vfio_integrated_checked(self, CheckVfio):
         vfio_integrated = CheckVfio.get_active()
         print("vfio_integrated = "+str(CheckVfio.get_active()))
@@ -218,7 +275,8 @@ class MainWindow(Gtk.Window):
             elif self.comptoggle == 1:
                 self.vfio_disabled(ButtonVfioDisable)
         self.genrtoggle = 0
-
+        self.comptoggle = 0
+        self.errortoggle = 0
 
     def enable_vfio(self, ButtonVfioEnable):
         if self.CheckVfio.get_active() == False:
@@ -238,7 +296,6 @@ class MainWindow(Gtk.Window):
             if self.genrtoggle == 0:
                 self.invalid_mkinitcpio_conf(ButtonVfioEnable)
         else:
-            pci_ids = "8942:4j3i,2344:0vd9"
             linelist = []
             linelist2 = []
             line2 = []
@@ -259,12 +316,12 @@ class MainWindow(Gtk.Window):
                                     line2.append(item)
                                 counter = counter + 1
                             else:
-                                line2.append("vfio_pci" + pci_ids + " ")
+                                line2.append("vfio_pci" + self.pci_ids + " ")
                         line2[0] = line2[0] + '"'
                         linefin = ''.join(line2)
                         line = linefin
                     else:
-                        line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="', 'GRUB_CMDLINE_LINUX_DEFAULT="' + "vfio_pci:" + pci_ids + " ")
+                        line = line.replace('GRUB_CMDLINE_LINUX_DEFAULT="', 'GRUB_CMDLINE_LINUX_DEFAULT="' + "vfio_pci:" + self.pci_ids + " ")
                         self.comptoggle = 1
                 print(line,end="")
             if self.errortoggle == 0:
@@ -275,6 +332,7 @@ class MainWindow(Gtk.Window):
                 self.vfio_enabled_devices_updated(ButtonVfioEnable)
         self.genrtoggle = 0
         self.comptoggle = 0
+        self.errortoggle = 0
 
     def disable_iommu(self, ButtonDisableIommu):
         for line in fileinput.FileInput('testfilegrub', inplace=1):
@@ -291,6 +349,7 @@ class MainWindow(Gtk.Window):
         elif self.genrtoggle == 0:
             self.iommu_not_enabled(ButtonDisableIommu)
         self.genrtoggle = 0
+        self.comptoggle = 0
         self.errortoggle = 0
 
     def enable_iommu(self, ButtonEnableIommu):
@@ -308,6 +367,10 @@ class MainWindow(Gtk.Window):
                     print(line,end="")
         if self.errortoggle == 0:
             self.invalid_grub_config(ButtonEnableIommu)
+
+        self.genrtoggle = 0
+        self.comptoggle = 0
+        self.errortoggle = 0
 
     #Completiondialogs
     def vfio_enabled(self, widget, data=None):

@@ -1,27 +1,40 @@
-import fileinput
-pci_ids = "8942:4j3i,2344:0vd9"
-linelist = []
-linelist2 = []
-line2 = []
-counter = 0
-for line in fileinput.FileInput("testfilegrub",inplace=1):
-    if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
-        if "vfio_pci" in line:
-            linelist = line.split(' ')
-            linelist2 = linelist[0].split('"')
-            linel = linelist2[0]
-            linelist.insert(0, linel)
-            linelist[1] = linelist2[1]
-            for item in linelist:
-                if "vfio_pci" not in item:
-                    if counter == 0 or counter == len(linelist)-2:
-                        line2.append(item)
-                    else:
-                        line2.append(item + " ")
-                    counter = counter + 1
-                else:
-                    line2.append("vfio_pci" + pci_ids + " ")
-            line2[0] = line2[0] + '"'
-            linefin = ''.join(line2)
-            line = linefin
-    print(line,end="")
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
+class CellRendererToggleWindow(Gtk.Window):
+
+    def __init__(self):
+        Gtk.Window.__init__(self, title="CellRendererToggle Example")
+
+        self.set_default_size(200, 200)
+
+        self.liststore = Gtk.ListStore(str, bool, bool)
+        self.liststore.append(["Debian", False, True])
+        self.liststore.append(["OpenSuse", True, False])
+        self.liststore.append(["Fedora", False, False])
+
+        treeview = Gtk.TreeView(model=self.liststore)
+
+        renderer_text = Gtk.CellRendererText()
+        column_text = Gtk.TreeViewColumn("Text", renderer_text, text=0)
+        treeview.append_column(column_text)
+
+        renderer_toggle = Gtk.CellRendererToggle()
+        renderer_toggle.connect("toggled", self.on_cell_toggled)
+
+        column_toggle = Gtk.TreeViewColumn("Toggle", renderer_toggle, active=1)
+        treeview.append_column(column_toggle)
+
+        self.add(treeview)
+
+    def on_cell_toggled(self, widget, path):
+        self.liststore[path][1] = not self.liststore[path][1]
+        print(self.liststore[path][1])
+        print(self.liststore[path])
+        print(self.liststore)
+
+win = CellRendererToggleWindow()
+win.connect("destroy", Gtk.main_quit)
+win.show_all()
+Gtk.main()
