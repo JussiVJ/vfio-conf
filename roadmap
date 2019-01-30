@@ -1,9 +1,6 @@
-Shortterm:
-- pci device menu
-
 Initial release:
 - testing
-- driver blacklisting
+- finish driver blacklisting
 
 After initial release:
 - multilanguage support

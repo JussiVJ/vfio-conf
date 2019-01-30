@@ -5,59 +5,117 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gio, Gtk, Pango, Gdk
 
 #Get PCI data
-lspci = subprocess.check_output(["lspci", "-nn"])
-ListPci = str(lspci).split("\\n")
-del ListPci[0]
-del ListPci[len(ListPci) - 1]
+if "IOMMU enabled" not in str(subprocess.check_output(['sh', 'IOMMU-check.sh'])):
+    IOMMUSTATE = False
+    lspci = subprocess.check_output(["lspci", "-nn"])
+    ListPci = str(lspci).split("\\n")
+    del ListPci[0]
+    del ListPci[len(ListPci) - 1]
 
-#Filter out the Domain and Bus IDs
-ListPciDomain = []
-for item in ListPci:
-    item = item.split(" ")
-    while len(item) > 1:
-        del item[1]
-    ListPciDomain.extend(item)
+    #Filter out the Domain and Bus IDs
+    ListPciDomain = []
+    for item in ListPci:
+        item = item.split(" ")
+        ListPciDomain.append(item[0])
 
-#Filter out the names of the PCI-devices
-ListPciName = []
-for item in ListPci:
-    item = item.replace(": ", " [")
-    item = str(item).split(" [")
-    del item[0]
-    del item[0]
-    while len(item) > 1:
-        del item[1]
-    ListPciName.extend(item)
-
-#Filter out the IDs of the PCI-dself.errortoggle == 0evices
-ListPciIDs = []
-for item in ListPci:
-    item = item.replace('[', ']')
-    item = item.split("]")
-    while ":" not in item[0] or len(item[0]) != 9:
+    #Filter out the names of the PCI-devices
+    ListPciName = []
+    for item in ListPci:
+        item = item.replace(": ", " [")
+        item = str(item).split(" [")
         del item[0]
-    while len(item) > 1:
+        del item[0]
+        while len(item) > 1:
+            del item[1]
+        ListPciName.extend(item)
+
+    #Filter out the IDs of the PCI-dself.errortoggle == 0evices
+    ListPciIDs = []
+    for item in ListPci:
+        item = item.replace('[', ']')
+        item = item.split("]")
+        while ":" not in item[0] or len(item[0]) != 9:
+            del item[0]
+        while len(item) > 1:
+            del item[1]
+        ListPciIDs.extend(item)
+
+    #Filter out the revisons of the PCI-devices
+    ListPciRev = []
+    for item in ListPci:
+        item = item.replace(')', '(')
+        item = item.split("(")
+        del item[0]
         del item[1]
-    ListPciIDs.extend(item)
+        ListPciRev.extend(item)
 
-#Filter out the revisons of the PCI-devices
-ListPciRev = []
-for item in ListPci:
-    item = item.replace(')', '(')
-    item = item.split("(")
-    del item[0]
-    del item[1]
-    ListPciRev.extend(item)
+    #Put the filtered data into one list
+    PciView = [[ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0], False],
+                [ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1], False]]
 
-#Put the filtered data into one list
-PciView = [[ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0], False],
-            [ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1], False]]
+    while len(PciView) < len(ListPci):
+        if len(PciView) <= len(ListPci):
+            PciView.append("")
+        PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], False]
 
+else:
+    IOMMUSTATE = True
+    lspci = subprocess.check_output(["sh", "IOMMU-group.sh"])
+    ListPci = str(lspci).split("\\n")
+    ListPci[0] = ListPci[0].replace("b'", "")
+    del ListPci[len(ListPci) - 1]
 
-while len(PciView) < len(ListPci):
-    if len(PciView) <= len(ListPci):
-        PciView.append("")
-    PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], False]
+    #Filter out the IOMMU group
+    ListPciIOMMU = []
+    for item in ListPci:
+        item = item.split(" ")
+        ListPciIOMMU.append(item[2])
+
+    #Filter out the Domain and Bus IDs
+    ListPciDomain = []
+    for item in ListPci:
+        item = item.split(" ")
+        ListPciDomain.append(item[3])
+
+    #Filter out the names of the PCI-devices
+    ListPciName = []
+    for item in ListPci:
+        item = item.replace(": ", " [")
+        item = str(item).split(" [")
+        del item[0]
+        del item[0]
+        while len(item) > 1:
+            del item[1]
+        ListPciName.extend(item)
+
+    #Filter out the IDs of the PCI-dself.errortoggle == 0evices
+    ListPciIDs = []
+    for item in ListPci:
+        item = item.replace('[', ']')
+        item = item.split("]")
+        while ":" not in item[0] or len(item[0]) != 9:
+            del item[0]
+        while len(item) > 1:
+            del item[1]
+        ListPciIDs.extend(item)
+
+    #Filter out the revisons of the PCI-devices
+    ListPciRev = []
+    for item in ListPci:
+        item = item.replace(')', '(')
+        item = item.split("(")
+        del item[0]
+        del item[1]
+        ListPciRev.extend(item)
+
+    #Put the filtered data into one list
+    PciView = [[ListPciIOMMU[0], ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0], False],
+                [ListPciIOMMU[1], ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1], False]]
+
+    while len(PciView) < len(ListPci):
+        if len(PciView) <= len(ListPci):
+            PciView.append("")
+        PciView[len(PciView)-1] = [ListPciIOMMU[len(PciView)-1], ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], False]
 
 class MainWindow(Gtk.Window):
     def __init__(self):
@@ -89,23 +147,31 @@ class MainWindow(Gtk.Window):
         BoxOptions4 = Gtk.Box()
         BoxMain.add(BoxOptions4)
 
-        ButtonVfioEnable = Gtk.Button.new_with_label("Enable Vfio")
-        ButtonVfioEnable.connect("clicked", self.enable_vfio)
-        BoxOptions.add(ButtonVfioEnable)
-        ButtonVfioEnable.set_size_request(120, 0)
+        BoxOptions5 = Gtk.Box()
+        BoxMain.add(BoxOptions5)
 
-        LabelVfioEnable = Gtk.Label("Enable the loading of the vfio kernel-module on startup")
-        LabelVfioEnable.set_margin_left(5)
-        BoxOptions.add(LabelVfioEnable)
+        self.ButtonBlacklist = Gtk.Button.new_with_label("Blacklist drivers")
+        self.ButtonBlacklist.connect("clicked", self.driver_blacklist)
+        BoxOptions5.add(self.ButtonBlacklist)
+        self.ButtonBlacklist.set_size_request(120, 0)
 
-        ButtonVfioDisable = Gtk.Button.new_with_label("Disable Vfio")
-        ButtonVfioDisable.connect("clicked", self.disable_vfio)
-        BoxOptions2.add(ButtonVfioDisable)
-        ButtonVfioDisable.set_size_request(120, 0)
+        self.ButtonVfioEnable = Gtk.Button.new_with_label("Enable Vfio")
+        self.ButtonVfioEnable.connect("clicked", self.enable_vfio)
+        BoxOptions.add(self.ButtonVfioEnable)
+        self.ButtonVfioEnable.set_size_request(120, 0)
 
-        LabelVfioDisable = Gtk.Label("Disable the loading of the vfio kernel-module on startup")
-        LabelVfioDisable.set_margin_left(5)
-        BoxOptions2.add(LabelVfioDisable)
+        self.LabelVfioEnable = Gtk.Label("Enable the loading of the vfio kernel-module on startup")
+        self.LabelVfioEnable.set_margin_left(5)
+        BoxOptions.add(self.LabelVfioEnable)
+
+        self.ButtonVfioDisable = Gtk.Button.new_with_label("Disable Vfio")
+        self.ButtonVfioDisable.connect("clicked", self.disable_vfio)
+        BoxOptions2.add(self.ButtonVfioDisable)
+        self.ButtonVfioDisable.set_size_request(120, 0)
+
+        self.LabelVfioDisable = Gtk.Label("Disable the loading of the vfio kernel-module on startup")
+        self.LabelVfioDisable.set_margin_left(5)
+        BoxOptions2.add(self.LabelVfioDisable)
 
         ButtonEnableIommu = Gtk.Button.new_with_label("Enable Iommu")
         ButtonEnableIommu.connect("clicked", self.enable_iommu)
@@ -130,8 +196,13 @@ class MainWindow(Gtk.Window):
         FramePci.set_margin_left(3)
         FramePci.set_margin_right(3)
 
-        PciColumns = ["Name", "Product and Vendor IDs", "Bus ID              ", "Revision"]
-        self.ListmodelPci = Gtk.ListStore(str, str, str, str, bool)
+        if IOMMUSTATE == False:
+            PciColumns = ["Name", "Product and Vendor IDs", "Bus ID              ", "Revision"]
+            self.ListmodelPci = Gtk.ListStore(str, str, str, str, bool)
+        else:
+            PciColumns = ["IOMMU", "Name", "Product and Vendor IDs", "Bus ID              ", "Revision"]
+            self.ListmodelPci = Gtk.ListStore(str, str, str, str, str, bool)
+
         for item in PciView:
             self.ListmodelPci.append(list(item))
         PciTreeView = Gtk.TreeView(model=self.ListmodelPci)
@@ -150,6 +221,7 @@ class MainWindow(Gtk.Window):
         PciTreeView.set_margin_left(3)
         PciTreeView.set_margin_right(3)
         FramePci.add(PciTreeView)
+        FramePci.set_margin_top(6)
 
         BoxApply = Gtk.Box()
         BoxMain.add(BoxApply)
@@ -168,10 +240,18 @@ class MainWindow(Gtk.Window):
         BoxApply.add(LabelApplyPci)
 
     #Buttons
+    def driver_blacklist(self, ButtonBlacklist):
+        print(" ")
+
     def apply_pci(self, ButtonApplyPci):
         if self.CheckVfio.get_active() == False:
             for line in fileinput.FileInput("testfilemodprobe",inplace=1):
-                line = "options vfio-pci ids="
+                if 0 < len(self.pci_ids):
+                    line = "options vfio-pci ids=" + ','.join(self.pci_ids)
+                    print(line,end="")
+                else:
+                    line = "#placeholder"
+                    print(line,end="")
             self.vfio_devices_updated(ButtonApplyPci)
         else:
             linelist = []
@@ -203,11 +283,11 @@ class MainWindow(Gtk.Window):
                         self.comptoggle = 1
                 print(line,end="")
             if self.errortoggle == 0:
-                self.invalid_grub_conf(ButtonVfioEnable)
+                self.invalid_grub_conf(self.ButtonVfioEnable)
             elif self.genrtoggle == 0:
-                self.vfio_enabled(ButtonVfioEnable)
+                self.vfio_enabled(self.ButtonVfioEnable)
             elif self.comptoggle == 0:
-                self.vfio_enabled_devices_updated(ButtonVfioEnable)
+                self.vfio_enabled_devices_updated(self.ButtonVfioEnable)
         self.genrtoggle = 0
         self.comptoggle = 0
         self.errortoggle = 0
@@ -224,7 +304,14 @@ class MainWindow(Gtk.Window):
 
     def vfio_integrated_checked(self, CheckVfio):
         vfio_integrated = CheckVfio.get_active()
-        print("vfio_integrated = "+str(CheckVfio.get_active()))
+        self.ButtonVfioEnable.set_sensitive(not vfio_integrated)
+        self.ButtonVfioDisable.set_sensitive(not vfio_integrated)
+        if vfio_integrated == True:
+            self.LabelVfioEnable.set_text('Select the PCI-devices you want to pass through and press "Apply" to enable vfio')
+            self.LabelVfioDisable.set_text('Unselect all PCI-devices and press "Apply" to disable vfio')
+        else:
+            self.LabelVfioEnable.set_text("Enable the loading of the vfio kernel-module on startup")
+            self.LabelVfioDisable.set_text("Disable the loading of the vfio kernel-module on startup")
 
     def disable_vfio(self, ButtonVfioDisable):
         if self.CheckVfio.get_active() == False:
@@ -234,13 +321,13 @@ class MainWindow(Gtk.Window):
                     if 'vfio' in line:
                         line = line.replace(" vfio_pci vfio vfio_iommu_type1 vfio_virqfd", "")
                         self.genrtoggle = 1
-                    print(line, end="")
+                print(line, end="")
             if self.errortoggle == 0:
-                self.invalid_mkinitcpio_conf(ButtonVfioDisable)
+                self.invalid_mkinitcpio_conf(self.ButtonVfioDisable)
             elif self.genrtoggle == 0:
-                self.vfio_not_enabled(ButtonVfioDisable)
+                self.vfio_not_enabled(self.ButtonVfioDisable)
             else:
-                self.vfio_disabled(ButtonVfioDisable)
+                self.vfio_disabled(self.ButtonVfioDisable)
         else:
             linelist = []
             linelist2 = []
@@ -269,11 +356,11 @@ class MainWindow(Gtk.Window):
                         line = linefin
                 print(line,end="")
             if self.errortoggle == 0:
-                self.invalid_grub_conf(ButtonVfioDisable)
+                self.invalid_grub_conf(self.ButtonVfioDisable)
             elif self.genrtoggle == 0:
-                self.vfio_not_enabled(ButtonVfioDisable)
+                self.vfio_not_enabled(self.ButtonVfioDisable)
             elif self.comptoggle == 1:
-                self.vfio_disabled(ButtonVfioDisable)
+                self.vfio_disabled(self.ButtonVfioDisable)
         self.genrtoggle = 0
         self.comptoggle = 0
         self.errortoggle = 0
@@ -284,17 +371,17 @@ class MainWindow(Gtk.Window):
                 if "HOOKS=" in line:
                     if "vfio" in line:
                         print(line, end="")
-                        self.vfio_already_enabled(ButtonVfioEnable)
+                        self.vfio_already_enabled(self.ButtonVfioEnable)
                         self.genrtoggle = 1
                     elif "keyboard" in line:
                         line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
                         print(line, end="")
                         self.genrtoggle = 1
-                        self.vfio_enabled(ButtonVfioEnable)
-                    else:
-                        print(line, end="")
+                        self.vfio_enabled(self.ButtonVfioEnable)
+                else:
+                    print(line, end="")
             if self.genrtoggle == 0:
-                self.invalid_mkinitcpio_conf(ButtonVfioEnable)
+                self.invalid_mkinitcpio_conf(self.ButtonVfioEnable)
         else:
             linelist = []
             linelist2 = []
@@ -316,7 +403,7 @@ class MainWindow(Gtk.Window):
                                     line2.append(item)
                                 counter = counter + 1
                             else:
-                                line2.append("vfio_pci" + self.pci_ids + " ")
+                                line2.append("vfio_pci" + ','.join(self.pci_ids) + " ")
                         line2[0] = line2[0] + '"'
                         linefin = ''.join(line2)
                         line = linefin
@@ -325,11 +412,11 @@ class MainWindow(Gtk.Window):
                         self.comptoggle = 1
                 print(line,end="")
             if self.errortoggle == 0:
-                self.invalid_grub_conf(ButtonVfioEnable)
+                self.invalid_grub_conf(self.ButtonVfioEnable)
             elif self.genrtoggle == 0:
-                self.vfio_enabled(ButtonVfioEnable)
+                self.vfio_enabled(self.ButtonVfioEnable)
             elif self.comptoggle == 0:
-                self.vfio_enabled_devices_updated(ButtonVfioEnable)
+                self.vfio_enabled_devices_updated(self.ButtonVfioEnable)
         self.genrtoggle = 0
         self.comptoggle = 0
         self.errortoggle = 0
