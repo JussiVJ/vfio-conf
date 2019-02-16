@@ -12,7 +12,7 @@ GRUB_SAVEDEFAULT=true
 # Preload both GPT and MBR modules so that they are not missed
 GRUB_PRELOAD_MODULES="part_gpt part_msdos"
 
-# Uncomment to enable booting from LUKS encryp    print(linefin)
+# Uncomment to enable booting from LUKS encryption
 ted devices
 #GRUB_ENABLE_CRYPTODISK=y
 
