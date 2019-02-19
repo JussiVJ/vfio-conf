@@ -14,7 +14,7 @@ if "vfioconf.conf" not in fileslist:
 pci_ids = {}
 vfio_int = False
 
-for line in fileinput.FileInput("testfilemodprobe", inplace=1):
+for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf", inplace=1):
     if "options vfio-pci" in line:
         linelist = line.split("=")
         linelist = linelist[1].split(",")
@@ -79,7 +79,7 @@ if "IOMMU enabled" not in str(subprocess.check_output(['sh', 'resources/IOMMU-ch
 
 
     if vfio_int == False:
-        for line in fileinput.FileInput("testfilemodprobe", inplace=1):
+        for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf", inplace=1):
             if "options vfio-pci" in line:
                 linetemp = line.replace('\n', "")
                 linelist = linetemp.split("=")
@@ -89,7 +89,7 @@ if "IOMMU enabled" not in str(subprocess.check_output(['sh', 'resources/IOMMU-ch
             print(line,end="")
     else:
         vfio_linelist = []
-        for line in fileinput.FileInput("testfilegrub", inplace=1):
+        for line in fileinput.FileInput("/etc/default/grub", inplace=1):
             if "vfio" in line:
                 vfio_linelist = line.split('"')
                 for item in vfio_linelist:
@@ -165,7 +165,7 @@ else:
 
 
     if vfio_int == False:
-        for line in fileinput.FileInput("testfilemodprobe", inplace=1):
+        for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf", inplace=1):
             if "options vfio-pci" in line:
                 linetemp = line.replace('\n', "")
                 linelist = linetemp.split("=")
@@ -174,7 +174,7 @@ else:
                     pci_ids[item] = True
             print(line,end="")
     else:
-        for line in fileinput.FileInput("testfilegrub", inplace=1):
+        for line in fileinput.FileInput("/etc/default/grub", inplace=1):
             if "vfio" in line:
                 vfio_linelist = line.split('"')
                 for item in vfio_linelist:
@@ -204,7 +204,7 @@ class MainWindow(Gtk.Window):
          #Debian:0 Redhat:1 Arch:2
         self.distro = ""
         self.startup = True
-        for line in fileinput.FileInput("testfileos", inplace=1):
+        for line in fileinput.FileInput("/etc/os-release", inplace=1):
             if "ID=arch" in line or "ID_LIKE=arch" in line:
                 self.distro = 2
             elif "ID=debian" in line or "ID_LIKE=debian" in line:
@@ -411,7 +411,7 @@ class MainWindow(Gtk.Window):
             self.distro = model[tree_iter][0]
 
     def blacklist_nvidia(self, ButtonBlacklist):
-        for line in fileinput.FileInput("testfilemodprobe",inplace=1):
+        for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf",inplace=1):
             if self.NVIDIAmodprobe == True:
                 if "blacklist nvidia-current" in line:
                     line = "#nvidia-current" + "\n"
@@ -428,7 +428,7 @@ class MainWindow(Gtk.Window):
 
     def blacklist_nouveau(self, ButtonBlacklist):
         nextline = False
-        for line in fileinput.FileInput("testfilemodprobe",inplace=1):
+        for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf",inplace=1):
             if self.NOUVEAUmodprobe == True:
                 if "nouveau" in line:
                     line = "#nouveau" + '\n'
@@ -448,7 +448,7 @@ class MainWindow(Gtk.Window):
             print(line,end="")
 
     def blacklist_amdgpu(self, ButtonBlacklist):
-        for line in fileinput.FileInput("testfilemodprobe",inplace=1):
+        for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf",inplace=1):
             if self.AMDGPUmodprobe == True:
                 if "amdgpu" in line:
                     line = "#amdgpu" + "\n"
@@ -469,7 +469,7 @@ class MainWindow(Gtk.Window):
             if pci_ids[item] == True:
                 pci_ids2.append(item)
         if self.CheckVfio.get_active() == False:
-            for line in fileinput.FileInput("testfilemodprobe",inplace=1):
+            for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf",inplace=1):
                 if 0 < len(pci_ids2):
                     if "vfio-pci" in line:
                         line = "options vfio-pci ids=" + ','.join(pci_ids2) + '\n'
@@ -483,7 +483,7 @@ class MainWindow(Gtk.Window):
             linelist2 = []
             line2 = []
             counter = 0
-            for line in fileinput.FileInput("testfilegrub",inplace=1):
+            for line in fileinput.FileInput("/etc/default/grub",inplace=1):
                 if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
                     self.errortoggle = 1
                     if "vfio-pci" in line:
@@ -532,12 +532,12 @@ class MainWindow(Gtk.Window):
             self.LabelVfioEnable.set_text("Enable the loading of the vfio kernel-module on startup")
             self.LabelVfioDisable.set_text("Disable the loading of the vfio kernel-module on startup")
         if vfio_int == True:
-            for line in fileinput.FileInput("testfilemodprobe", inplace=1):
+            for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf", inplace=1):
                 if "vfio-pci" in line:
                     line = "#vfio_int" + '\n'
                 print(line,end="")
         else:
-            for line in fileinput.FileInput("testfilemodprobe", inplace=1):
+            for line in fileinput.FileInput("/etc/modprobe.d/vfioconf.conf", inplace=1):
                 if "vfio_int" in line:
                     line = "#vfio-pci" + '\n'
                 print(line,end="")
@@ -545,7 +545,7 @@ class MainWindow(Gtk.Window):
             linelist2 = []
             line2 = []
             counter = 0
-            for line in fileinput.FileInput("testfilegrub",inplace=1):
+            for line in fileinput.FileInput("/etc/default/grub",inplace=1):
                 if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
                     if "vfio-pci" in line:
                         linelist = line.split(' ')
@@ -626,7 +626,7 @@ class MainWindow(Gtk.Window):
                     self.invalid_modload_conf(self.ButtonVfioEnable)
 
     def disable_iommu(self, ButtonDisableIommu):
-        for line in fileinput.FileInput('testfilegrub', inplace=1):
+        for line in fileinput.FileInput('/etc/default/grub', inplace=1):
             if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
                 if 'intel_iommu=on amd_iommu=on iommu=on iommu=pt ' in line:
                     line = line.replace('intel_iommu=on amd_iommu=on iommu=on iommu=pt ','')
@@ -644,7 +644,7 @@ class MainWindow(Gtk.Window):
         self.errortoggle = 0
 
     def enable_iommu(self, ButtonEnableIommu):
-        for line in fileinput.FileInput("testfilegrub", inplace=1):
+        for line in fileinput.FileInput("/etc/default/grub", inplace=1):
             if "GRUB_CMDLINE_LINUX_DEFAULT=" in line:
                 self.errortoggle = 1
                 if "iommu" in line:
