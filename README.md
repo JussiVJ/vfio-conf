@@ -4,7 +4,7 @@ GUI tool to easily make some configurations that are needed to run  a pci passtr
 
 THIS TOOL IS NOT STABLE. If you encounter any problems, create an issue in github.
 
-Roadmap:
+
     Shortterm goals:
     - testing
     - a bit of work with dialogs
