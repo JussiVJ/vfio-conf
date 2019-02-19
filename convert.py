@@ -8,4 +8,6 @@ for line in fileinput.FileInput("gui.py",inplace=1):
         line = line.replace("testfilemkinitcpio", initcpio)
     if 'testfileos' in line:
         line = line.replace("testfileos", "/etc/os-release")
+    if 'testfilemodload' in line:
+        line = line.replace("testfileos", "/etc/modules/vfioconf.conf")
     print(line,end="")

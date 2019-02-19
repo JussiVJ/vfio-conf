@@ -9,7 +9,7 @@ files = files.replace("b'", '')
 fileslist = files.split('\\n')
 del fileslist[len(fileslist) - 1]
 if "vfioconf.conf" not in fileslist:
-    subprocess.call(["cp", "resources/vfioconf.conf", "/etc/modprobe.d/vfioconf.conf"])
+    subprocess.call(["cp", "resources/vfioconf_modprobe.conf", "/etc/modprobe.d/vfioconf.conf"])
 
 pci_ids = {}
 vfio_int = False
@@ -201,6 +201,7 @@ class MainWindow(Gtk.Window):
     def __init__(self):
 
         #Distro detection
+         #Debian:0 Redhat:1 Arch:2
         self.distro = ""
         self.startup = True
         for line in fileinput.FileInput("testfileos", inplace=1):
@@ -211,6 +212,8 @@ class MainWindow(Gtk.Window):
             elif "ID=redhat" in line or "ID_LIKE=redhat" in line or "ID=fedora" in line or "ID_LIKE=fedora" in line:
                 self.distro = 1
             print(line,end="")
+        if self.distro == 0:
+            subprocess.call(["cp", "resources/vfioconf_modules.conf", "/etc/modprobe.d/vfioconf.conf"])
 
         self.NVIDIAmodprobe = False
         self.NOUVEAUmodprobe = False
@@ -406,7 +409,6 @@ class MainWindow(Gtk.Window):
             self.startup = False
         elif tree_iter is not -1:
             self.distro = model[tree_iter][0]
-        print (self.distro)
 
     def blacklist_nvidia(self, ButtonBlacklist):
         for line in fileinput.FileInput("testfilemodprobe",inplace=1):
@@ -475,7 +477,6 @@ class MainWindow(Gtk.Window):
                     if "vfio-pci" in line:
                         line = "#vfio-pci" + '\n'
                 print(line,end="")
-            print(pci_ids2)
             self.vfio_devices_updated(ButtonApplyPci)
         else:
             linelist = []
@@ -530,7 +531,6 @@ class MainWindow(Gtk.Window):
         else:
             self.LabelVfioEnable.set_text("Enable the loading of the vfio kernel-module on startup")
             self.LabelVfioDisable.set_text("Disable the loading of the vfio kernel-module on startup")
-        print(vfio_int)
         if vfio_int == True:
             for line in fileinput.FileInput("testfilemodprobe", inplace=1):
                 if "vfio-pci" in line:
@@ -566,39 +566,64 @@ class MainWindow(Gtk.Window):
                 print(line,end="")
 
     def disable_vfio(self, ButtonVfioDisable):
-        if self.CheckVfio.get_active() == False:
-            for line in fileinput.FileInput("testfileinitcpio",inplace=1):
-                if "HOOKS=" in line:
-                    self.errortoggle = 1
-                    if 'vfio' in line:
-                        line = line.replace(" vfio_pci vfio vfio_iommu_type1 vfio_virqfd", "")
-                        self.genrtoggle = 1
-                print(line, end="")
-            if self.errortoggle == 0:
-                self.invalid_mkinitcpio_conf(self.ButtonVfioDisable)
-            elif self.genrtoggle == 0:
-                self.vfio_not_enabled(self.ButtonVfioDisable)
-            else:
-                self.vfio_disabled(self.ButtonVfioDisable)
+        if self.distro == 2:
+            if self.CheckVfio.get_active() == False:
+                for line in fileinput.FileInput("testfileinitcpio",inplace=1):
+                    if "HOOKS=" in line:
+                        self.errortoggle = 1
+                        if 'vfio' in line:
+                            line = line.replace(" vfio_pci vfio vfio_iommu_type1 vfio_virqfd", "")
+                            self.genrtoggle = 1
+                    print(line, end="")
+                if self.errortoggle == 0:
+                    self.invalid_mkinitcpio_conf(self.ButtonVfioDisable)
+                elif self.genrtoggle == 0:
+                    self.vfio_not_enabled(self.ButtonVfioDisable)
+                else:
+                    self.vfio_disabled(self.ButtonVfioDisable)
 
+        elif self.distro == 0:
+            for line in fileinput.FileInput("testfilemodload", inplace=1):
+                if "vfio" in line:
+                    if "vfio_pci" in line:
+                        self.vfio_already_disabled(self.ButtonVfioDisable)
+                    else:
+                        line = line.replace('vfio_pci vfio vfio_iommu_type1 vfio_virqfd', '#vfio')
+                        self.vfio_disabled(self.ButtonVfioDisable)
+                print(line, end="")
+            if self.genrtoggle == 0:
+                self.invalid_modload_conf(self.ButtonVfioDisable)
 
     def enable_vfio(self, ButtonVfioEnable):
         if self.CheckVfio.get_active() == False:
-            for line in fileinput.FileInput("testfileinitcpio",inplace=1):
-                if "HOOKS=" in line:
+            if self.distro == 2:
+                for line in fileinput.FileInput("testfileinitcpio",inplace=1):
+                    if "HOOKS=" in line:
+                        if "vfio" in line:
+                            print(line, end="")
+                            self.genrtoggle = 1
+                            self.vfio_already_enabled(self.ButtonVfioEnable)
+                        elif "keyboard" in line:
+                            line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
+                            print(line, end="")
+                            self.genrtoggle = 1
+                            self.vfio_enabled(self.ButtonVfioEnable)
+                        else:
+                            print(line, end="")
+                if self.genrtoggle == 0:
+                    self.invalid_mkinitcpio_conf(self.ButtonVfioEnable)
+
+            elif self.distro == 0:
+                for line in fileinput.FileInput("testfilemodload", inplace=1):
                     if "vfio" in line:
-                        print(line, end="")
-                        self.vfio_already_enabled(self.ButtonVfioEnable)
-                        self.genrtoggle = 1
-                    elif "keyboard" in line:
-                        line = line.replace("keyboard", "keyboard vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
-                        print(line, end="")
-                        self.genrtoggle = 1
-                        self.vfio_enabled(self.ButtonVfioEnable)
-                else:
+                        if "vfio_pci" in line:
+                            self.vfio_already_enabled(self.ButtonVfioEnable)
+                        else:
+                            line = line.replace('#vfio', 'vfio_pci vfio vfio_iommu_type1 vfio_virqfd')
+                            self.vfio_enabled(self.ButtonVfioEnable)
                     print(line, end="")
-            if self.genrtoggle == 0:
-                self.invalid_mkinitcpio_conf(self.ButtonVfioEnable)
+                if self.genrtoggle == 0:
+                    self.invalid_modload_conf(self.ButtonVfioEnable)
 
     def disable_iommu(self, ButtonDisableIommu):
         for line in fileinput.FileInput('testfilegrub', inplace=1):
