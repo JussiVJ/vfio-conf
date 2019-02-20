@@ -74,7 +74,10 @@ if "IOMMU enabled" not in str(subprocess.check_output(['sh', 'resources/IOMMU-ch
         item = item.replace(')', '(')
         item = item.split("(")
         del item[0]
-        del item[1]
+        if len(item) > 0:
+            del item[1]
+        else:
+            item = ['N/A']
         ListPciRev.extend(item)
 
 
@@ -160,7 +163,10 @@ else:
         item = item.replace(')', '(')
         item = item.split("(")
         del item[0]
-        del item[1]
+        if len(item) > 0:
+            del item[1]
+        else:
+            item = ['N/A']
         ListPciRev.extend(item)
 
 
