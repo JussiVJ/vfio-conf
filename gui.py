@@ -10,6 +10,8 @@ fileslist = files.split('\\n')
 del fileslist[len(fileslist) - 1]
 if "vfioconf.conf" not in fileslist:
     subprocess.call(["cp", "resources/vfioconf_modprobe.conf", "/etc/modprobe.d/vfioconf.conf"])
+if "vfioconf.conf" not in str(subprocess.check_output(['ls', '/etc/modules'])):
+    subprocess.call(["cp", "resources/vfioconf_modules.conf", "/etc/modules/vfioconf.conf"])
 
 pci_ids = {}
 vfio_int = False
