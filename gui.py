@@ -9,7 +9,7 @@ files = files.replace("b'", '')
 fileslist = files.split('\\n')
 del fileslist[len(fileslist) - 1]
 if "vfioconf.conf" not in fileslist:
-    subprocess.call(["cp", "resources/vfioconf_modprobe.conf", "/etc/modprobe.d/vfioconf.conf"])
+    subprocess.call(["cp", "resources/vfioconf_modprobe.conf", "testfilemodprobe"])
 if "vfioconf.conf" not in str(subprocess.check_output(['ls', '/etc/modules'])):
     subprocess.call(["cp", "resources/vfioconf_modules.conf", "/etc/modules/vfioconf.conf"])
 
@@ -50,13 +50,12 @@ if "IOMMU enabled" not in str(subprocess.check_output(['sh', 'resources/IOMMU-ch
     #Filter out the names of the PCI-devices
     ListPciName = []
     for item in ListPci:
-        item = item.replace(": ", " [")
-        item = str(item).split(" [")
-        del item[0]
-        del item[0]
-        while len(item) > 1:
-            del item[1]
-        ListPciName.extend(item)
+        itemlist = item.split(" ")
+        del(itemlist[0])
+        item = ' '.join(itemlist)
+        item = item.replace(":", " [")
+        itemlist = item.split(" [")
+        ListPciName.append(str(itemlist[0] + ":" + itemlist[2]))
 
     #Filter out the IDs of the PCI-derrortoggle == 0evices
     ListPciIDs = []
@@ -124,6 +123,10 @@ else:
     ListPci[0] = ListPci[0].replace("b'", "")
     del ListPci[len(ListPci) - 1]
 
+    ListPci = str(subprocess.check_output(["sh", "resources/IOMMU-group.sh"])).split("\\n")
+    ListPci[0] = ListPci[0].replace("b'", "")
+    del ListPci[len(ListPci) - 1]
+
     #Filter out the IOMMU group
     ListPciIOMMU = []
     for item in ListPci:
@@ -139,13 +142,15 @@ else:
     #Filter out the names of the PCI-devices
     ListPciName = []
     for item in ListPci:
-        item = item.replace(": ", " [")
-        item = str(item).split(" [")
-        del item[0]
-        del item[0]
-        while len(item) > 1:
-            del item[1]
-        ListPciName.extend(item)
+        itemlist = item.split(" ")
+        del(itemlist[0])
+        item = ' '.join(itemlist)
+        item = item.replace(":", " [")
+        itemlist = item.split(" [")
+        item = ''.join(itemlist[1]) + ":" + ''.join(itemlist[3])
+        itemlist = item.split(" ")
+        del(itemlist[0])
+        ListPciName.append(' '.join(itemlist))
 
     #Filter out the IDs of the PCI-derrortoggle == 0evices
     ListPciIDs = []
@@ -156,7 +161,7 @@ else:
             del item[0]
         while len(item) > 1:
             del item[1]
-        ListPciIDs.extend(item[0])
+        ListPciIDs.append(item[0])
         pci_ids[item[0]] = False
 
     #Filter out the revisons of the PCI-devices
@@ -209,7 +214,8 @@ class MainWindow(Gtk.Window):
 
         #Distro detection
          #Debian:0 Redhat:1 Arch:2
-        self.distro = ""
+        print(IOMMUSTATE)
+        self.distro = 0
         self.startup = True
         for line in fileinput.FileInput("testfileos", inplace=1):
             if "ID=arch" in line or "ID_LIKE=arch" in line:
@@ -218,9 +224,10 @@ class MainWindow(Gtk.Window):
                 self.distro = 0
             elif "ID=redhat" in line or "ID_LIKE=redhat" in line or "ID=fedora" in line or "ID_LIKE=fedora" in line:
                 self.distro = 1
+
             print(line,end="")
         if self.distro == 0:
-            subprocess.call(["cp", "resources/vfioconf_modules.conf", "/etc/modprobe.d/vfioconf.conf"])
+            subprocess.call(["cp", "resources/vfioconf_modules.conf", "testfilemodprobe"])
 
         self.NVIDIAmodprobe = False
         self.NOUVEAUmodprobe = False
@@ -343,7 +350,7 @@ class MainWindow(Gtk.Window):
         BoxBlacklist3.add(self.ButtonBlacklistAmdgpu)
         BoxBlacklist3.add(self.LabelBlacklistAmdgpu)
 
-        FramePci = Gtk.Frame(label = "Avaivable PCI-devices:")
+        FramePci = Gtk.Frame(label = "Available PCI-devices:")
         BoxMain.add(FramePci)
         FramePci.set_margin_left(3)
         FramePci.set_margin_right(3)
@@ -367,7 +374,10 @@ class MainWindow(Gtk.Window):
             column = Gtk.TreeViewColumn(column_title, renderer_text, text=i)
             PciTreeView.append_column(column)
 
-        column_toggle = Gtk.TreeViewColumn("Toggle", renderer_toggle, active=4)
+        if IOMMUSTATE == True:
+            column_toggle = Gtk.TreeViewColumn("Vfio", renderer_toggle, active=5)
+        else:
+            column_toggle = Gtk.TreeViewColumn("Vfio", renderer_toggle, active=4)
         PciTreeView.append_column(column_toggle)
 
         PciTreeView.set_margin_left(3)
@@ -525,8 +535,12 @@ class MainWindow(Gtk.Window):
         self.errortoggle = 0
 
     def on_cell_toggled(self, widget, path):
-        self.ListmodelPci[path][4] = not self.ListmodelPci[path][4]
-        pci_ids[self.ListmodelPci[path][1]] = not pci_ids[self.ListmodelPci[path][1]]
+        if IOMMUSTATE == False:
+            self.ListmodelPci[path][4] = not self.ListmodelPci[path][4]
+            pci_ids[self.ListmodelPci[path][1]] = not pci_ids[self.ListmodelPci[path][1]]
+        else:
+            self.ListmodelPci[path][5] = not self.ListmodelPci[path][5]
+            pci_ids[self.ListmodelPci[path][2]] = not pci_ids[self.ListmodelPci[path][2]]
 
     def vfio_integrated_checked(self, CheckVfio):
         vfio_int = CheckVfio.get_active()
@@ -722,6 +736,14 @@ class MainWindow(Gtk.Window):
 
 
     #Errordialogs
+    def unsupported_distro(self, widget, data=None):
+        dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, "Unsupported distribution!")
+        dialog.format_secondary_text("This distro is not supported.")
+        dialog.run()
+
+        dialog.destroy()
+
     def invalid_grub_conf(self, widget, data=None):
         dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
             Gtk.ButtonsType.OK, "Invalid GRUB config!")
