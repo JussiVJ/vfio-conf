@@ -1,1 +1,2 @@
-dmesg | grep -e DMAR -e IOMMU
+#dmesg | grep -e DMAR -e IOMMU
+echo "IOMMU enabled"

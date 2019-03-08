@@ -15,6 +15,7 @@ if "vfioconf.conf" not in str(subprocess.check_output(['ls', '/etc/modules'])):
 
 pci_ids = {}
 vfio_int = False
+PciViewFin = []
 
 for line in fileinput.FileInput("testfilemodprobe", inplace=1):
     if "options vfio-pci" in line:
@@ -116,6 +117,10 @@ if "IOMMU enabled" not in str(subprocess.check_output(['sh', 'resources/IOMMU-ch
             PciView.append("")
         PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], pci_ids[ListPciIDs[len(PciView)-1]]]
 
+    for item in PciView:
+        if "PCI bridge" not in item[0] and "Host bridge" not in item[0] and "ISA bridge" not in item[0]:
+            PciViewFin.append(item)
+
 else:
     IOMMUSTATE = True
     lspci = subprocess.check_output(["sh", "resources/IOMMU-group.sh"])
@@ -209,12 +214,15 @@ else:
             PciView.append("")
         PciView[len(PciView)-1] = [ListPciIOMMU[len(PciView)-1], ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], pci_ids[ListPciIDs[len(PciView)-1]]]
 
+    for item in PciView:
+        if "PCI bridge" not in item[1] and "Host bridge" not in item[1] and "ISA bridge" not in item[1]:
+            PciViewFin.append(item)
+
 class MainWindow(Gtk.Window):
     def __init__(self):
 
         #Distro detection
          #Debian:0 Redhat:1 Arch:2
-        print(IOMMUSTATE)
         self.distro = 0
         self.startup = True
         for line in fileinput.FileInput("testfileos", inplace=1):
@@ -362,7 +370,7 @@ class MainWindow(Gtk.Window):
             PciColumns = ["IOMMU", "Name", "Product and Vendor IDs", "Bus ID              ", "Revision"]
             self.ListmodelPci = Gtk.ListStore(str, str, str, str, str, bool)
 
-        for item in PciView:
+        for item in PciViewFin:
             self.ListmodelPci.append(list(item))
         PciTreeView = Gtk.TreeView(model=self.ListmodelPci)
 
