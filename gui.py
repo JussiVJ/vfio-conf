@@ -16,7 +16,7 @@ if "vfioconf.conf" not in fileslist:
 for line in fileinput.FileInput("/etc/modules", inplace=1):
     if "vfio" not in line:
         line.replace("# beginning with # are ignored.", "# beginning with # are ignored." + '\n' + "#vfio")
-    print(line,end="")§
+    print(line,end="")
                      
 pci_ids = {}
 vfio_int = False
