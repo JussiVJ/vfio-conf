@@ -2,9 +2,9 @@ vfio-conf
 
 GUI tool to easily make some configurations that are needed to run a pci passtrough setup using vfio.
 
-THIS TOOL IS NOT STABLE. If you encounter any problems, create an issue in github.
+THIS TOOL IS NOT STABLE. BACK UP YOUR CONFIG FILES! If you encounter any problems, create an issue in github.
 
-Please run this tool as root and with python 3.
+Please run this tool as root and with python 3:
 
 Shortterm goals:
 - testing
