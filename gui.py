@@ -10,8 +10,7 @@ fileslist = files.split('\\n')
 del fileslist[len(fileslist) - 1]
 
 if "vfioconf.conf" not in fileslist:
-    subprocess.call(["cp", "resources/vfioconf_modprobe.conf", "/etc/modprobe.d/vfioconf.conf
-# at boot time, one per line. Lines beginning with "#" are ignored.
+    subprocess.call(["cp", "resources/vfioconf_modprobe.conf", "/etc/modprobe.d/vfioconf.conf"])
 
 for line in fileinput.FileInput("/etc/modules", inplace=1):
     if "vfio" not in line:
