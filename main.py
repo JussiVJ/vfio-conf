@@ -263,44 +263,34 @@ class MainWindow(Gtk.Window):
 
     def blacklist_nvidia(self, ButtonBlacklist):
         for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
+            NVIDIAblacklist = blacklist.nvidia(self, NVIDIAblacklist)
             if NVIDIAblacklist == True:
-                if "blacklist nvidia-current" in line:
-                    line = "#nvidia-current" + "\n"
-                    NVIDIAblacklist = False
-                    self.ButtonBlacklistNvidia.set_label("Blacklist NVIDIA")
-                    self.LabelBlacklistNvidia.set_text("Blacklist propietary NVIDIA drivers")
+                self.ButtonBlacklistNvidia.set_label("Unblacklist Nvidia")
+                self.LabelBlacklistNvidia.set_text("Unblacklist propietary NVIDIA drivers")
+
             else:
-                if "nvidia-current" in line:
-                    line = "blacklist nvidia-current" + "\n"
-                    NVIDIAblacklist = True
-                    self.ButtonBlacklistNvidia.set_label("Unblacklist NVIDIA")
-                    self.LabelBlacklistNvidia.set_text("Unblacklist propietary NVIDIA drivers")
-            print(line,end="")
+                self.ButtonBlacklistNvidia.set_label("Blacklist Nvidia")
+                self.LabelBlacklistNvidia.set_text("Blacklist propietary NVIDIA drivers")
 
     def blacklist_nouveau(self, ButtonBlacklist):
-        nextline = False
-        for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
-            if self.NOUVEAUmodprobe == True:
-                if "nouveau" in line:
-                    line = "#nouveau" + '\n'
-                    self.NOUVEAUmodprobe = False
-                    self.ButtonBlacklistNouveau.set_label("Blacklist Nouveau")
-                    self.LabelBlacklistNouveau.set_text("Blacklist opensource NVIDIA drivers")
-                    nextline = True
-            else:
-                if nextline == True:
-                    line = ""
-                    nextline = False
-                elif "#nouveau" in line:
-                    line = "blacklist nouveau" + '\n' + "options nouveau modeset=0" + "\n"
-                    self.NOUVEAUmodprobe = True
-                    self.ButtonBlacklistNouveau.set_label("Unblacklist Nouveau")
-                    self.LabelBlacklistNouveau.set_text("Unblacklist opensource NVIDIA drivers")
-            print(line,end="")
+        NOUVEAUblacklist = blacklist.nouveau(self, NOUVEAUblacklist)
+        if NOUVEAUblacklist == True:
+            self.ButtonBlacklistNouveau.set_label("Unblacklist Nouveau")
+            self.LabelBlacklistNouveau.set_text("Unblacklist opensource NVIDIA drivers")
+
+        else:
+            self.ButtonBlacklistNouveau.set_label("Blacklist Nouveau")
+            self.LabelBlacklistNouveau.set_text("Blacklist opensource NVIDIA drivers")
 
     def blacklist_amdgpu(self, ButtonBlacklist):
-        blacklist.amd(self, AMDGPUblacklist)
-        print(AMDGPUblacklist)
+        AMDGPUblacklist = blacklist.amd(self, AMDGPUblacklist)
+        if AMDGPUblacklist == True:
+            self.ButtonBlacklistAmdgpu.set_label("Unblacklist Amdgpu")
+            self.LabelBlacklistAmdgpu.set_text("Unblacklist AMD drivers")
+
+        else:
+            self.ButtonBlacklistAmdgpu.set_label("Blacklist Amdgpu")
+            self.LabelBlacklistAmdgpu.set_text("Blacklist AMD drivers")
 
     def apply_pci(self, ButtonApplyPci):
         pci_ids2 = []

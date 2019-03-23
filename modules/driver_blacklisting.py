@@ -1,38 +1,37 @@
 import fileinput
 
-def amd(self, blacklist=None):
-    for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
+def amd(self, blacklist=False):
+    for line in fileinput.FileInput("testfilemodprobe",inplace=1):
         if blacklist == True:
-            blacklist = False
-            print
+            if "amdgpu" in line:
+                line = "#amdgpu" + "\n"
+                return False
+        else:
+            if "amdgpu" in line:
+                line = "blacklist amdgpu" + "\n"
+                return True
         print(line,end="")
 
 
-def nvidia():
+def nvidia(self, blacklist=False):
     for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
-        if NVIDIAblacklist == True:
+        if blacklist == True:
             if "blacklist nvidia-current" in line:
                 line = "#nvidia-current" + "\n"
-                NVIDIAblacklist = False
-                self.ButtonBlacklistNvidia.set_label("Blacklist NVIDIA")
-                self.LabelBlacklistNvidia.set_text("Blacklist propietary NVIDIA drivers")
+                return False
         else:
             if "nvidia-current" in line:
                 line = "blacklist nvidia-current" + "\n"
-                NVIDIAblacklist = True
-                self.ButtonBlacklistNvidia.set_label("Unblacklist NVIDIA")
-                self.LabelBlacklistNvidia.set_text("Unblacklist propietary NVIDIA drivers")
+                return True
         print(line,end="")
 
-def nouveau():
+def nouveau(self, blacklist=False):
     nextline = False
     for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
-        if NOUVEAUblacklist == True:
+        if blacklist == True:
             if "nouveau" in line:
                 line = "#nouveau" + '\n'
-                NOUVEAUblacklist = False
-                self.ButtonBlacklistNouveau.set_label("Blacklist Nouveau")
-                self.LabelBlacklistNouveau.set_text("Blacklist opensource NVIDIA drivers")
+                return False
                 nextline = True
         else:
             if nextline == True:
@@ -40,7 +39,5 @@ def nouveau():
                 nextline = False
             elif "#nouveau" in line:
                 line = "blacklist nouveau" + '\n' + "options nouveau modeset=0" + "\n"
-                NOUVEAUblacklist = True
-                self.ButtonBlacklistNouveau.set_label("Unblacklist Nouveau")
-                self.LabelBlacklistNouveau.set_text("Unblacklist opensource NVIDIA drivers")
+                return True
         print(line,end="")
