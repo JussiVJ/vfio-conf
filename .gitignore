@@ -2,3 +2,5 @@
 test\.py
 
 testfile
+
+modules/__pycache__/

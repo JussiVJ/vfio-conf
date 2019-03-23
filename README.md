@@ -1,4 +1,4 @@
-This is the testing branch of vfio-conf. The program will make changes to the testfiles only unless you run the convert.py script.
+This is the revamp branch of vfio-conf. THIS BRANCH IS NOT FUNCTIONAL ALL CHANGES WILL BE INTEGRATED INTO THE MASTER AND RELEASE BRANCHES WHEN THE REVAMP IS FINISHED!
 
 vfio-conf
 
