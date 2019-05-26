@@ -1,2 +1,3 @@
+- remove duplicate code
 - redhat support
 - support for passing through one of two devices with the same product and vendor ids

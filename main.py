@@ -1,7 +1,7 @@
 import gi
 import fileinput
 import subprocess
-from sys import exit
+import os
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
@@ -25,6 +25,12 @@ from modules import dialogs as dialog
 from modules import loadconf as config
 from modules import apply
 from modules import clear_config as clear
+
+#Verify the existance of necessary config files
+if "vfioconf.conf" not in os.listdir("/etc/modprobe.d"):
+    os.system("sudo cp resources/vfioconf_modprobe.conf /etc/modprobe.d/vfioconf.conf")
+if "vfioconf.conf" not in os.listdir("/etc/modules-load.d"):
+    os.system("sudo cp resources/vfioconf_modules.conf /etc/modules-load.d/vfioconf.conf")
 
 #Distro detection
 for line in fileinput.FileInput("testfiles/testfileos", inplace=1):
