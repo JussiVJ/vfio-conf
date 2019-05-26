@@ -7,6 +7,14 @@ def arch(int=False, pci_dev=[]):
             elif len(pci_dev) == 0 and "vfio-pci" in line:
                 line = "#vfio-pci" + '\n'
             print(line,end="")
+
+        for line in fileinput.FileInput("testfiles/testfileinitcpio", inplace=1):
+            if len(pci_dev) > 0 and "HOOKS=(" in line and "vfio" not in line:
+                line = line.replace("filesystems", "filesystems vfio_pci vfio vfio_iommu_type1 vfio_virqfd")
+            elif len(pci_dev) == 0 and "HOOKS=(" in line and "vfio" in line:
+                line = line.replace("vfio_pci vfio vfio_iommu_type1 vfio_virqfd ", "")
+            print(line,end="")
+
     else:
         for line in fileinput.FileInput("testfiles/testfilegrub", inplace=1):
             if "GRUB_CMDLINE_LINUX_DEFAULT" in line:

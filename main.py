@@ -14,10 +14,17 @@ pci_ids = {}
 NVIDIAblacklist = False
 NOUVEAUblacklist = False
 AMDGPUblacklist = False
-
 startup = {}
 startup["iommu"] = True
 startup["distro"] = True
+
+#Loading of custom modules
+from modules import driver_blacklisting as blacklist
+from modules import iommutoggle
+from modules import dialogs as dialog
+from modules import loadconf as config
+from modules import apply
+from modules import clear_config as clear
 
 #Distro detection
 for line in fileinput.FileInput("testfiles/testfileos", inplace=1):
@@ -28,14 +35,6 @@ for line in fileinput.FileInput("testfiles/testfileos", inplace=1):
     elif "ID=redhat" in line or "ID_LIKE=redhat" in line or "ID=fedora" in line or "ID_LIKE=fedora" in line:
         distro = 2
     print(line,end="")
-
-#Loading of custom modules
-from modules import driver_blacklisting as blacklist
-from modules import iommutoggle
-from modules import dialogs as dialog
-from modules import loadconf as config
-from modules import apply
-from modules import clear_config as clear
 
 #Load previous configuration
 config = config.load()
@@ -213,6 +212,11 @@ class MainWindow(Gtk.Window):
                     for line in fileinput.FileInput("testfiles/testfilemodload", inplace=1):
                         if "vfio-pci" in line:
                             line = "#vfio"
+                        print(line,end="")
+                elif distro == 0:
+                    for line in fileinput.FileInput("testfiles/testfileinitcpio", inplace=1):
+                        if "HOOKS=(" in line and "vfio" in line:
+                            line = line.replace("vfio_pci vfio vfio_iommu_type1 vfio_virqfd ", "")
                         print(line,end="")
 
                 for line in fileinput.FileInput("testfiles/testfilemodprobe", inplace=1):
