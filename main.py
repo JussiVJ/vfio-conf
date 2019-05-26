@@ -10,13 +10,14 @@ vfio_int = False
 distro = -1
 iommustate = False
 iommutest = False
-startup = {}
-startup["iommu"] = True
-startup["distro"] = True
 pci_ids = {}
 NVIDIAblacklist = False
 NOUVEAUblacklist = False
 AMDGPUblacklist = False
+
+startup = {}
+startup["iommu"] = True
+startup["distro"] = True
 
 #Distro detection
 for line in fileinput.FileInput("testfiles/testfileos", inplace=1):
@@ -37,9 +38,31 @@ from modules import apply
 
 #Load previous configuration
 config = config.load()
+
 NVIDIAblacklist = config["nvidia"]
 NOUVEAUblacklist = config["nouveau"]
 AMDGPUblacklist = config["amd"]
+vfio_int = config["vfio-int"]
+
+if NVIDIAblacklist == True:
+    startup["nvidia"] = True
+else:
+    startup["nvidia"] = False
+
+if NOUVEAUblacklist == True:
+    startup["nouveau"] = True
+else:
+    startup["nouveau"] = False
+
+if AMDGPUblacklist == True:
+    startup["amd"] = True
+else:
+    startup["amd"] = False
+
+if vfio_int == True:
+    startup["vfio-int"] = True
+else:
+    startup["vfio-int"] = False
 
 #IOMMU detection
 try:
@@ -57,8 +80,7 @@ if iommutest == True:
             iommustate = True
         print(line,end="")
 
-print(iommustate)
-
+iommustart = iommustate
 
 if iommustate == False:
     from modules import pci_data as pci
@@ -68,12 +90,27 @@ else:
 #Get pci data
 PciData = pci.data()
 
+
 for item in PciData:
     if iommustate == False:
-        pci_ids[item[1]] = False
+        if item[1] in config["ids"]:
+            item[4] = True
+            pci_ids[item[1]] = True
+        else:
+            item[4] = False
+            pci_ids[item[1]] = False
     else:
-        pci_ids[item[2]] = False
+        if item[2] in config["ids"]:
+            item[5] = True
+            pci_ids[item[2]] = True
+        else:
+            item[5] = False
+            pci_ids[item[2]] = False
 
+
+for item in pci_ids:
+    if pci_ids[item] == True:
+        print(item)
 
 #Making sure configuration files exist
 if distro == 1:
@@ -84,7 +121,7 @@ class MainWindow(Gtk.Window):
 
     #TreeView
     def on_cell_toggled(self, widget, path):
-        if iommustate == False:
+        if iommustart == False:
             self.ListmodelPci[path][4] = not self.ListmodelPci[path][4]
             pci_ids[self.ListmodelPci[path][1]] = not pci_ids[self.ListmodelPci[path][1]]
         else:
@@ -92,38 +129,30 @@ class MainWindow(Gtk.Window):
             pci_ids[self.ListmodelPci[path][2]] = not pci_ids[self.ListmodelPci[path][2]]
 
     #Driver Blacklisting functions
-    def blacklist_nvidia(self, ButtonBlacklist):
+    def blacklist_nvidia(self, CheckBlacklistNvidia):
         global NVIDIAblacklist
-        NVIDIAblacklist = blacklist.nvidia(self, NVIDIAblacklist)
-        if NVIDIAblacklist == True:
-            self.ButtonBlacklistNvidia.set_label("Unblacklist Nvidia")
-            self.LabelBlacklistNvidia.set_text("Unblacklist propietary NVIDIA drivers")
-
+        global startup
+        if startup["nvidia"] != True:
+            NVIDIAblacklist = blacklist.nvidia(NVIDIAblacklist)
         else:
-            self.ButtonBlacklistNvidia.set_label("Blacklist Nvidia")
-            self.LabelBlacklistNvidia.set_text("Blacklist propietary NVIDIA drivers")
+            startup["nvidia"] = False
 
-    def blacklist_nouveau(self, ButtonBlacklist):
+    def blacklist_nouveau(self, CheckBlacklistNouveau):
         global NOUVEAUblacklist
-        NOUVEAUblacklist = blacklist.nouveau(self, NOUVEAUblacklist)
-        if NOUVEAUblacklist == True:
-            self.ButtonBlacklistNouveau.set_label("Unblacklist Nouveau")
-            self.LabelBlacklistNouveau.set_text("Unblacklist opensource NVIDIA drivers")
-
+        global startup
+        if startup["nouveau"] != True:
+            NOUVEAUblacklist = blacklist.nouveau(NOUVEAUblacklist)
         else:
-            self.ButtonBlacklistNouveau.set_label("Blacklist Nouveau")
-            self.LabelBlacklistNouveau.set_text("Blacklist opensource NVIDIA drivers")
+            startup["nouveau"] = False
 
-    def blacklist_amdgpu(self, ButtonBlacklist):
+    def blacklist_amdgpu(self, CheckBlacklistAmdgpu):
         global AMDGPUblacklist
-        AMDGPUblacklist = blacklist.amd(self, AMDGPUblacklist)
-        if AMDGPUblacklist == True:
-            self.ButtonBlacklistAmdgpu.set_label("Unblacklist Amdgpu")
-            self.LabelBlacklistAmdgpu.set_text("Unblacklist AMD drivers")
-
+        global startup
+        if startup["amd"] != True:
+            AMDGPUblacklist = blacklist.amd(AMDGPUblacklist)
         else:
-            self.ButtonBlacklistAmdgpu.set_label("Blacklist Amdgpu")
-            self.LabelBlacklistAmdgpu.set_text("Blacklist AMD drivers")
+            startup["amd"] = False
+
 
     #IOMMU toggled
     def toggle_iommu(self, CheckIommu):
@@ -131,7 +160,6 @@ class MainWindow(Gtk.Window):
         global startup
         if startup["iommu"] == False:
             iommustate = iommutoggle.toggle()
-            print("sacc")
         else:
             startup["iommu"] = False
             CheckIommu.set_active(iommustate)
@@ -159,26 +187,45 @@ class MainWindow(Gtk.Window):
 
     #vfio integrated check
     def vfio_integrated_checked(self, CheckVfio):
-        if CheckVfio.get_active() == True:
-            for line in fileinput.FileInput("testfiles/testfilemodprobe", inplace=1):
-                if "vfio-pci" in line:
-                    line = "#vfio_int" + '\n'
-                print(line,end="")
+        global startup
+        global vfio_int
+
+        if startup["vfio-int"] != True:
+
+            if iommustart == True:
+                for item in self.ListmodelPci:
+                    item[5] = False
+            else:
+                for item in self.ListmodelPci:
+                    item[4] = False
+            for item in pci_ids:
+                pci_ids[item] = False
+
+            if CheckVfio.get_active() == True:
+                for line in fileinput.FileInput("testfiles/testfilemodprobe", inplace=1):
+                    if "vfio-pci" in line:
+                        line = "#vfio_int" + '\n'
+                    print(line,end="")
+            else:
+                for line in fileinput.FileInput("testfiles/testfilemodprobe", inplace=1):
+                    if "vfio_int" in line:
+                        line = "#vfio-pci" + '\n'
+                    print(line,end="")
+                linelist = []
+                for line in fileinput.FileInput("testfiles/testfilegrub",inplace=1):
+                    if "GRUB_CMDLINE_LINUX_DEFAULT" in line and "vfio-pci" in line:
+                            for item in ''.join(line.split('"')).split(' '):
+                                if 'vfio-pci' not in item and 'GRUB_CMDLINE_LINUX_DEFAULT' not in item:
+                                    linelist.append(item)
+                            linelist[len(linelist)-1] = linelist[len(linelist)-1].replace('\n', '"' + '\n')
+                            line = 'GRUB_CMDLINE_LINUX_DEFAULT="' + ' '.join(linelist)
+                            result = False
+                    print(line,end="")
+
         else:
-            for line in fileinput.FileInput("testfiles/testfilemodprobe", inplace=1):
-                if "vfio_int" in line:
-                    line = "#vfio-pci" + '\n'
-                print(line,end="")
-            linelist = []
-            for line in fileinput.FileInput("testfiles/testfilegrub",inplace=1):
-                if "GRUB_CMDLINE_LINUX_DEFAULT" in line and "vfio-pci" in line:
-                        for item in ''.join(line.split('"')).split(' '):
-                            if 'vfio-pci' not in item and 'GRUB_CMDLINE_LINUX_DEFAULT' not in item:
-                                linelist.append(item)
-                        linelist[len(linelist)-1] = linelist[len(linelist)-1].replace('\n', '"' + '\n')
-                        line = 'GRUB_CMDLINE_LINUX_DEFAULT="' + ' '.join(linelist)
-                        result = False
-                print(line,end="")
+            startup["vfio-int"] = False
+        vfio_int = CheckVfio.get_active()
+
 
 
     #GUI
@@ -190,9 +237,10 @@ class MainWindow(Gtk.Window):
         BoxMain = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=8, spacing=6)
         self.add(BoxMain)
 
-        self.CheckVfio = Gtk.CheckButton(label=" Vfio is compiled into the kernel")
-        self.CheckVfio.connect("toggled", self.vfio_integrated_checked)
-        BoxMain.add(self.CheckVfio)
+        CheckVfio = Gtk.CheckButton(label=" Vfio is compiled into the kernel")
+        CheckVfio.connect("toggled", self.vfio_integrated_checked)
+        CheckVfio.set_active(vfio_int)
+        BoxMain.add(CheckVfio)
 
         CheckIommu = Gtk.CheckButton(label="Enable Iommu")
         CheckIommu.connect("toggled", self.toggle_iommu)
@@ -200,64 +248,29 @@ class MainWindow(Gtk.Window):
         BoxMain.add(CheckIommu)
         CheckIommu.set_size_request(120, 0)
 
-        FrameBlacklist = Gtk.Frame(label = "Driver blacklisting:")
-        FrameBlacklist.set_margin_top(3)
+        FrameBlacklist = Gtk.Frame(label = "Driver blacklisting:", margin_left=3, margin_right=3)
         BoxMain.add(FrameBlacklist)
-        FrameBlacklist.set_margin_left(3)
-        FrameBlacklist.set_margin_right(3)
 
-        GridBlacklist = Gtk.Grid()
+        GridBlacklist = Gtk.Grid(margin_top=3)
         FrameBlacklist.add(GridBlacklist)
 
-        BoxBlacklist1 = Gtk.Box(spacing=5)
-        BoxBlacklist1.set_margin_top(2)
-        GridBlacklist.add(BoxBlacklist1)
+        CheckBlacklistAmdgpu = Gtk.CheckButton(label="Blacklist AMDGPU drivers", margin_bottom=3)
+        CheckBlacklistAmdgpu.connect("toggled", self.blacklist_amdgpu)
+        CheckBlacklistAmdgpu.set_active(AMDGPUblacklist)
+        GridBlacklist.add(CheckBlacklistAmdgpu)
 
-        BoxBlacklist2 = Gtk.Box(spacing=5)
-        BoxBlacklist2.set_margin_top(5)
-        GridBlacklist.attach_next_to(BoxBlacklist2, BoxBlacklist1, Gtk.PositionType.BOTTOM, 1, 2)
+        CheckBlacklistNvidia = Gtk.CheckButton(label="Blacklist protietary NVIDIA drivers", margin_bottom=3)
+        CheckBlacklistNvidia.connect("toggled", self.blacklist_nvidia)
+        CheckBlacklistNvidia.set_active(NVIDIAblacklist)
+        GridBlacklist.attach_next_to(CheckBlacklistNvidia, CheckBlacklistAmdgpu, Gtk.PositionType.BOTTOM, 1, 1)
 
-        BoxBlacklist3 = Gtk.Box(spacing=5)
-        BoxBlacklist3.set_margin_top(5)
-        GridBlacklist.attach_next_to(BoxBlacklist3, BoxBlacklist2, Gtk.PositionType.BOTTOM, 1, 2)
+        CheckBlacklistNouveau = Gtk.CheckButton(label="Blacklist opensource NVIDIA drivers (nouveau)")
+        CheckBlacklistNouveau.connect("toggled", self.blacklist_nouveau)
+        CheckBlacklistNouveau.set_active(NOUVEAUblacklist)
+        GridBlacklist.attach_next_to(CheckBlacklistNouveau, CheckBlacklistNvidia, Gtk.PositionType.BOTTOM, 1, 1)
 
-        if NVIDIAblacklist == False:
-            self.ButtonBlacklistNvidia = Gtk.Button.new_with_label(label="Blacklist NVIDIA")
-            self.LabelBlacklistNvidia = Gtk.Label(label="Blacklist propietary NVIDIA drivers")
-        else:
-            self.ButtonBlacklistNvidia = Gtk.Button.new_with_label(label="Unblacklist NVIDIA")
-            self.LabelBlacklistNvidia = Gtk.Label(label="Unblacklist propietary NVIDIA drivers")
-        self.LabelBlacklistNvidia.set_margin_left(5)
-        self.ButtonBlacklistNvidia.connect("clicked", self.blacklist_nvidia)
-        BoxBlacklist1.add(self.ButtonBlacklistNvidia)
-        BoxBlacklist1.add(self.LabelBlacklistNvidia)
-
-        if NOUVEAUblacklist == False:
-            self.ButtonBlacklistNouveau = Gtk.Button.new_with_label(label="Blacklist Nouveau")
-            self.LabelBlacklistNouveau = Gtk.Label(label="Blacklist opensource NVIDIA drivers")
-        else:
-            self.ButtonBlacklistNouveau = Gtk.Button.new_with_label(label="Unblacklist Nouveau")
-            self.LabelBlacklistNouveau = Gtk.Label(label="Unblacklist opensource NVIDIA drivers")
-        self.LabelBlacklistNouveau.set_margin_left(5)
-        self.ButtonBlacklistNouveau.connect("clicked", self.blacklist_nouveau)
-        BoxBlacklist2.add(self.ButtonBlacklistNouveau)
-        BoxBlacklist2.add(self.LabelBlacklistNouveau)
-
-        if AMDGPUblacklist == False:
-            self.ButtonBlacklistAmdgpu = Gtk.Button.new_with_label(label="Blacklist Amdgpu")
-            self.LabelBlacklistAmdgpu = Gtk.Label(label="Blacklist AMD drivers")
-        else:
-            self.ButtonBlacklistAmdgpu = Gtk.Button.new_with_label(label="Unblacklist Amdgpu")
-            self.LabelBlacklistAmdgpu = Gtk.Label(label="Unblacklist AMD drivers")
-        self.LabelBlacklistAmdgpu.set_margin_left(5)
-        self.ButtonBlacklistAmdgpu.connect("clicked", self.blacklist_amdgpu)
-        BoxBlacklist3.add(self.ButtonBlacklistAmdgpu)
-        BoxBlacklist3.add(self.LabelBlacklistAmdgpu)
-
-        FramePci = Gtk.Frame(label="Available PCI-devices:")
+        FramePci = Gtk.Frame(label="Available PCI-devices:", margin_left=3, margin_right=3)
         BoxMain.add(FramePci)
-        FramePci.set_margin_left(3)
-        FramePci.set_margin_right(3)
 
         if iommustate == False:
             PciColumns = ["Name", "Product and Vendor IDs", "Bus ID              ", "Revision"]
@@ -279,33 +292,23 @@ class MainWindow(Gtk.Window):
             PciTreeView.append_column(column)
 
         if iommustate == True:
-            column_toggle = Gtk.TreeViewColumn("Vfio", renderer_toggle, active=5)
+            active=5
         else:
-            column_toggle = Gtk.TreeViewColumn("Vfio", renderer_toggle, active=4)
+            active=4
+        column_toggle = Gtk.TreeViewColumn("Vfio", renderer_toggle, active=active)
         PciTreeView.append_column(column_toggle)
-
-        PciTreeView.set_margin_left(3)
-        PciTreeView.set_margin_right(3)
         FramePci.add(PciTreeView)
-        FramePci.set_margin_top(6)
 
-        BoxApply = Gtk.Box()
+        BoxApply = Gtk.Box(spacing=5)
         BoxMain.add(BoxApply)
 
         ButtonApplyPci = Gtk.Button.new_with_label(label="Apply configuration")
         ButtonApplyPci.connect("clicked", self.apply_pci)
         ButtonApplyPci.set_size_request(120, 0)
-        ButtonApplyPci.set_margin_top(6)
-        ButtonApplyPci.set_margin_bottom(6)
-        ButtonApplyPci.set_margin_left(6)
-        ButtonApplyPci.set_margin_right(6)
         BoxApply.add(ButtonApplyPci)
 
-        LabelApplyPci = Gtk.Label(label="Confirm the selection of the devices you want to pass through")
-        LabelApplyPci.set_margin_left(5)
+        LabelApplyPci = Gtk.Label(label="Confirm the selection of the devices you want to pass through", margin_left=5)
         BoxApply.add(LabelApplyPci)
-
-        self.CheckVfio.set_active(vfio_int)
 
         distro_store = Gtk.ListStore(str)
         distros = ["Arch-based", "Debian-based", "Redhat-based"]
@@ -315,7 +318,6 @@ class MainWindow(Gtk.Window):
         ComboDistro = Gtk.ComboBox.new_with_model(distro_store)
         ComboDistro.connect("changed", self.on_ComboDistro_changed)
         renderer_text = Gtk.CellRendererText()
-        ComboDistro.set_margin_bottom(6)
         ComboDistro.pack_start(renderer_text, True)
         ComboDistro.add_attribute(renderer_text, "text", 0)
         BoxApply.pack_end(ComboDistro, False, False, 0)

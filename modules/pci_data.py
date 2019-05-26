@@ -50,39 +50,14 @@ def data():
         ListPciRev.extend(item)
 
 
-    if vfio_int == False:
-        for line in fileinput.FileInput("testfiles/testfilemodprobe", inplace=1):
-            if "options vfio-pci" in line:
-                linetemp = line.replace('\n', "")
-                linelist = linetemp.split("=")
-                linelist = linelist[1].split(",")
-                for item in linelist:
-                    pci_ids[item] = True
-            print(line,end="")
-    else:
-        vfio_linelist = []
-        for line in fileinput.FileInput("testfiles/testfilegrub", inplace=1):
-            if "vfio" in line:
-                vfio_linelist = line.split('"')
-                for item in vfio_linelist:
-                    if "vfio" in item:
-                        vfio_linelist = item.split(' ')
-                        for item in vfio_linelist:
-                            if "vfio" in item:
-                                vfio_linelist = item.split("=")
-                                vfio_linelist = vfio_linelist[1].split(',')
-            print(line,end="")
-        for item in vfio_linelist:
-            pci_ids[item] = True
-
     #Put the filtered data into one list
-    PciView = [[ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0], pci_ids[ListPciIDs[0]]],
-                [ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1], pci_ids[ListPciIDs[1]]]]
+    PciView = [[ListPciName[0], ListPciIDs[0], ListPciDomain[0], ListPciRev[0], False],
+                [ListPciName[1], ListPciIDs[1], ListPciDomain[1], ListPciRev[1], False]]
 
     while len(PciView) < len(ListPci):
         if len(PciView) <= len(ListPci):
             PciView.append("")
-        PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], pci_ids[ListPciIDs[len(PciView)-1]]]
+        PciView[len(PciView)-1] = [ListPciName[len(PciView)-1], ListPciIDs[len(PciView)-1], ListPciDomain[len(PciView)-1], ListPciRev[len(PciView)-1], False]
 
     for item in PciView:
         if "PCI bridge" not in item[0] and "Host bridge" not in item[0] and "ISA bridge" not in item[0]:

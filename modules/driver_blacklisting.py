@@ -1,6 +1,7 @@
 import fileinput
 
-def amd(self, blacklist=False):
+def amd(blacklist=None):
+    result = None
     for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
         if blacklist == True:
             if "amdgpu" in line:
@@ -14,7 +15,7 @@ def amd(self, blacklist=False):
     return result
 
 
-def nvidia(self, blacklist=False):
+def nvidia(blacklist=None):
     for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
         if blacklist == True:
             if "blacklist nvidia-current" in line:
@@ -27,9 +28,8 @@ def nvidia(self, blacklist=False):
         print(line,end="")
     return result
 
-def nouveau(self, blacklist=False):
+def nouveau(blacklist=None):
     nextline = False
-    print(blacklist)
     for line in fileinput.FileInput("testfiles/testfilemodprobe",inplace=1):
         if nextline == True:
             line = ""
