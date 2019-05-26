@@ -35,6 +35,7 @@ from modules import iommutoggle
 from modules import dialogs as dialog
 from modules import loadconf as config
 from modules import apply
+from modules import clear_config as clear
 
 #Load previous configuration
 config = config.load()
@@ -90,7 +91,6 @@ else:
 #Get pci data
 PciData = pci.data()
 
-
 for item in PciData:
     if iommustate == False:
         if item[1] in config["ids"]:
@@ -106,7 +106,6 @@ for item in PciData:
         else:
             item[5] = False
             pci_ids[item[2]] = False
-
 
 for item in pci_ids:
     if pci_ids[item] == True:
@@ -171,18 +170,26 @@ class MainWindow(Gtk.Window):
         global distro
         tree_iter = combo.get_active()
         model = combo.get_model()
+        if distro != tree_iter:
+            clear.config()
+            self.CheckVfio.set_active(False)
         if startup["distro"] == True:
             combo.set_active(distro)
             startup["distro"] = False
         elif tree_iter is not -1:
-            distro = model[tree_iter][0]
-
+            distro = tree_iter
 
     #Apply button
     def apply_pci(self, ButtonApplyPci):
         global distro
+        pci_dev = []
+        for item in pci_ids:
+            if pci_ids[item] == True:
+                pci_dev.append(item)
         if distro == 0:  #Arch
-            apply.arch(self, vfio_int, pci_ids)
+            apply.arch(vfio_int, pci_dev)
+        elif distro == 1:  #Debian/Ubuntu
+            apply.debian(vfio_int, pci_dev)
 
 
     #vfio integrated check
@@ -201,7 +208,13 @@ class MainWindow(Gtk.Window):
             for item in pci_ids:
                 pci_ids[item] = False
 
-            if CheckVfio.get_active() == True:
+            if self.CheckVfio.get_active() == True:
+                if distro == 1:
+                    for line in fileinput.FileInput("testfiles/testfilemodload", inplace=1):
+                        if "vfio-pci" in line:
+                            line = "#vfio"
+                        print(line,end="")
+
                 for line in fileinput.FileInput("testfiles/testfilemodprobe", inplace=1):
                     if "vfio-pci" in line:
                         line = "#vfio_int" + '\n'
@@ -224,7 +237,7 @@ class MainWindow(Gtk.Window):
 
         else:
             startup["vfio-int"] = False
-        vfio_int = CheckVfio.get_active()
+        vfio_int = self.CheckVfio.get_active()
 
 
 
@@ -237,10 +250,10 @@ class MainWindow(Gtk.Window):
         BoxMain = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, margin=8, spacing=6)
         self.add(BoxMain)
 
-        CheckVfio = Gtk.CheckButton(label=" Vfio is compiled into the kernel")
-        CheckVfio.connect("toggled", self.vfio_integrated_checked)
-        CheckVfio.set_active(vfio_int)
-        BoxMain.add(CheckVfio)
+        self.CheckVfio = Gtk.CheckButton(label=" Vfio is compiled into the kernel")
+        self.CheckVfio.connect("toggled", self.vfio_integrated_checked)
+        self.CheckVfio.set_active(vfio_int)
+        BoxMain.add(self.CheckVfio)
 
         CheckIommu = Gtk.CheckButton(label="Enable Iommu")
         CheckIommu.connect("toggled", self.toggle_iommu)

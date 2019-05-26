@@ -33,5 +33,4 @@ def load():
                         results["ids"][len(results["ids"])-1] = results["ids"][len(results["ids"])-1].strip('\n')
             print(line,end="")
 
-    print(results["ids"])
     return results
