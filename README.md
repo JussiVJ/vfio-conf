@@ -1,4 +1,9 @@
-vfio-conf
+DO NOT USE THIS. IT IS OUTDATED. I am planning on finishing the revamp sometime this year (2026) as the original code is horrible and made by a 14 year old. 
+
+This is what I recommend using:
+https://gitlab.com/driverctl/driverctl
+
+vfio-conf  
 
 GUI tool to easily make some configurations that are needed to run a pci passtrough setup using vfio.
 
