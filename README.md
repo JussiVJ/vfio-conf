@@ -1,4 +1,4 @@
-DO NOT USE THIS. IT IS OUTDATED. I am planning on finishing the revamp sometime this year (2026) as the original code is horrible and made by a 14 year old. 
+DO NOT USE THIS. IT IS OUTDATED. I am planning on finishing the refactor sometime this year (2026) as the original code is horrible and made by a 14 year old. 
 
 This is what I recommend using:
 https://gitlab.com/driverctl/driverctl
